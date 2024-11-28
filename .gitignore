@@ -1,0 +1,34 @@
+# Build output
+main.js
+*.js.map
+data.json
+
+# Dependencies
+node_modules/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Obsidian files
+.obsidian/
+.trash/
+
+# Environment files
+.env
+.env.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Distribution files
+dist/
+build/
+
+# TypeScript cache
+*.tsbuildinfo
