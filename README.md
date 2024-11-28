@@ -1,6 +1,6 @@
 # Nostr Obsidian Graph
 
-An Obsidian plugin for visualizing Nostr profiles and notes as a graph. This plugin allows you to connect to Nostr relays, fetch profiles and notes, and visualize them in your Obsidian vault.
+An Obsidian plugin for visualizing Nostr profiles and notes as a graph. This plugin allows you to connect to Nostr relays, fetch profiles and notes, and visualize them in your Obsidian vault. Currently write only with public key. The intention is to allow more focus and see where connections and communication intersect for interesting conversation. Reduction in over stimulating memes or rage porn is just a bonus. 
 
 ## Features
 
@@ -9,6 +9,7 @@ An Obsidian plugin for visualizing Nostr profiles and notes as a graph. This plu
 - Create markdown files for profiles and notes
 - Generate network visualizations
 - Configurable settings for relays and note limits
+- Utilizes Public keys 
 
 ## Installation
 
