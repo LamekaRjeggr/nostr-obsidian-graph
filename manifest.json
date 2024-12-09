@@ -1,0 +1,10 @@
+{
+    "id": "nostr-obsidian-graph",
+    "name": "Nostr Graph",
+    "version": "0.64.0",
+    "minAppVersion": "0.15.0",
+    "description": "Integrate Nostr with Obsidian, fetch and organize your Nostr content with support for multiple npubs and improved profile linking.",
+    "author": "CodeDev",
+    "authorUrl": "https://github.com/codedev",
+    "isDesktopOnly": false
+}
