@@ -121,4 +121,4 @@ The plugin uses Obsidian's alias system to enable flexible linking:
 
 ## Support
 
-For issues and feature requests, please use the GitHub repository's issue tracker.
+For issues and feature requests, please use the GitHub repository's issue tracker. There are plenty of issues and help is welcome. :)
