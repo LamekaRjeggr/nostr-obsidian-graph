@@ -92,5 +92,6 @@ LamekaRjeggr
 5. Create a new Pull Request
 
 
-## Additional Documentation
-- User Guide
+
+- ## Additional Documentation
+- [Guide](./guide.md)
