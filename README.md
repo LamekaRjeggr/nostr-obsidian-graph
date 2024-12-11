@@ -93,5 +93,3 @@ LamekaRjeggr
 
 
 
-- ## Additional Documentation
-- [Guide](./guide.md)
