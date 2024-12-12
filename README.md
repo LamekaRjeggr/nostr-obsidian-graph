@@ -2,6 +2,9 @@
 
 This plugin integrates Nostr with Obsidian, allowing you to fetch and organize your Nostr content within Obsidian's vault structure.
 
+![Demo](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/readme%20gif.gif?raw=true)
+
+
 Compatibility
 
 	This plugin has only been tested on macOS. Compatibility with other operating systems is currently unverified.
