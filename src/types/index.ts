@@ -10,133 +10,87 @@ export interface NostrEvent {
     sig: HexString;
 }
 
-export interface NostrProfile {
-    pubkey: HexString;
-    name?: string;
-    about?: string;
-    picture?: string;
-    nip05?: string;
-    [key: string]: any;
-}
-
 export interface NostrSettings {
-    relays: RelayConnection[];
-    defaultPubkey?: string;
     npub: string;
+    relays: RelayConnection[];
+    batchSize: number;
     notesPerProfile: number;
-    profilesDirectory: string;
-    notesDirectory: string;
     autoUpdate: boolean;
     updateInterval: number;
-    includeOwnNotes: boolean;  // Whether to include notes from the central npub
+    includeOwnNotes: boolean;
+    usePublicKeyAsFilename: boolean;
+    notesDirectory: string;
+    profilesDirectory: string;
+    globalLimit?: number;  // For backward compatibility
+    directories: {
+        main: string;
+        contacts?: string;
+        mentions?: string;
+        cache?: string;
+        replies?: string;  // Add optional replies directory
+    };
 }
 
 export interface RelayConnection {
     url: string;
     enabled: boolean;
-    status?: string;
-    error?: string;
-    ws?: BasicWebSocket;
+    status?: 'connecting' | 'connected' | 'disconnected' | 'error';
 }
 
-export interface SubscriptionOptions {
-    skipVerification?: boolean;
-    id?: string;
-    filters?: any;
-    relayUrls?: string[];
-    timeout?: number;
-}
-
-export interface NoteFile {
-    id: HexString;
-    content: string;
-    pubkey: HexString;
-    created_at: number;
-    tags: string[][];
-    mentions: string[];
-}
-
-export interface ProfileFile {
-    profile: NostrProfile;
-    lastUpdated: number;
-    noteIds: string[];  // Store note IDs instead of full notes
-    connectionIds: string[];  // Store connection pubkeys instead of full connections
+export interface FetchState {
+    count: number;
+    mainUserDone: boolean;
+    isActive: boolean;
 }
 
 export interface ProfileData {
-    profile: NostrProfile;
-    lastUpdated: number;
-    notes: NoteFile[];
-    connections: RelayConnection[];
+    pubkey: HexString;
+    displayName?: string;
+    name?: string;
+    about?: string;
+    picture?: string;
+    nip05?: string;
 }
 
-export interface FileOperationResult {
-    success: boolean;
-    error?: string;
+export interface ProfileStats {
+    noteCount: number;
+    oldestNote?: number;
+    newestNote?: number;
 }
 
-export interface BasicWebSocket {
-    send(data: string): void;
-    close(): void;
-    onmessage?: ((event: MessageEvent) => void) | null;
-    onclose?: ((event: CloseEvent) => void) | null;
-    onerror?: ((event: ErrorEvent) => void) | null;
-    onopen?: (() => void) | null;
-    readyState: number;
+export interface ChronologicalMetadata {
+    previousNote?: string;
+    nextNote?: string;
+    references?: TagReference[];
+    referencedBy?: TagReference[];
 }
 
-export interface MessageEvent {
-    data: any;
+export interface TagReference {
+    type: TagType;
+    targetId: string;
+    marker?: string;
+    relayHint?: string;
 }
 
-export interface CloseEvent {
-    code: number;
-    reason: string;
-    wasClean: boolean;
+export enum TagType {
+    ROOT = 'root',
+    REPLY = 'reply',
+    MENTION = 'mention',
+    TOPIC = 'topic'
 }
 
-export interface ErrorEvent {
-    error: any;
-    message: string;
-    type: string;
-}
-
-export interface ValidationDetails {
-    hasId: boolean;
-    hasPubkey: boolean;
-    hasCreatedAt: boolean;
-    hasKind: boolean;
-    hasTags: boolean;
-    hasContent: boolean;
-    hasSig: boolean;
-    idValid: boolean;
-    pubkeyValid: boolean;
-    sigValid: boolean;
-}
-
-export interface HexFieldValidation {
-    isValid: boolean;
-    error?: string;
-    value?: string;
-    length?: number;
-    expectedLength?: number;
-}
-
-export interface EventValidation {
-    isValid: boolean;
-    error?: string;
-    details: ValidationDetails;
-}
-
-export interface ContactList {
+export interface NoteFile {
+    id: string;
+    content: string;
     pubkey: string;
-    contacts: string[];
-}
-
-export interface NotesFilter {
-    authors: string[];
-    excludeAuthor?: string;
-    limit?: number;
-    since?: number;
-    until?: number;
+    authorName?: string;  // Added author name field
+    created_at: number;
+    kind: number;
+    tags: string[][];
+    mentions: string[];
+    title: string;
+    previousNote?: string;
+    nextNote?: string;
+    references?: TagReference[];
+    referencedBy?: TagReference[];
 }

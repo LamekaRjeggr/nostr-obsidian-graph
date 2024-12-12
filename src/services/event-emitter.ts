@@ -29,19 +29,18 @@ export class EventEmitter {
 
     emit(event: string, ...args: any[]): void {
         try {
-            console.log(`Emitting event: ${event}`, args);
             const callbacks = this.events.get(event);
             if (callbacks) {
                 callbacks.forEach(callback => {
                     try {
                         callback(...args);
                     } catch (error) {
-                        console.error(`Error in event callback for ${event}:`, error);
+                        throw new Error(`Event callback failed: ${error.message}`);
                     }
                 });
             }
         } catch (error) {
-            console.error(`Error emitting event ${event}:`, error);
+            throw new Error(`Event emission failed: ${error.message}`);
         }
     }
 
