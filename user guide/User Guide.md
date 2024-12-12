@@ -37,7 +37,8 @@ The plugin provides several commands to retrieve and organize Nostr content:
 - **Fetch Notes:** Retrieves notes associated with your configured public key (npub).
 - **Fetch Mentioned Profiles:** Fetches profiles mentioned within the retrieved notes.
 - **Fetch Mentioned Notes:** Collects notes referenced in e-tags for comprehensive dataset creation.
-![[Commands.png]]
+![Commands.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Commands.png?raw=true)
+
 These commands are accessible via the command palette (Cmd/Ctrl+P) or hotkeys. Notifications inform you of the fetching progress and results.
 
 #### Organizing Fetched Data
@@ -81,16 +82,12 @@ Nostr relies on two key components: clients and relays. Clients are the user-fac
 
 ---
 
-###
-
----
 
 ### Graph View and Data Exploration
 
 The Nostr Graph Plugin uses Obsidian’s powerful graph view and data handling capabilities to provide a visually way to explore relationships between notes and profiles. This feature is central to understanding the connections within your Nostr content, whether you’re mapping discussions or analyzing user interactions.
 
-![[gif.gif]]
-#### Linking Pathways
+![gif.gif](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/gif.gif?raw=true)#### Linking Pathways
 
 The plugin automatically establishes connections between related notes and profiles. These links allow for seamless navigation between associated content, potentially making it easier to trace discussions, follow reply threads, and understand interactions.
 
@@ -102,8 +99,7 @@ Utilize Obsidian’s local graph feature to focus on specific notes and their im
 #### Tag Search
 
 With metadata integration, the plugin supports tag-based searches to filter and locate notes quickly. Users can categorize content using topics, events, or keywords, enabling efficient exploration of their vault.
-![[Screenshot 2024-12-11 at 2.15.26 PM 2.png]]
----
+![Screenshot 2024-12-11 at 2.15.26 PM 2.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Screenshot%202024-12-11%20at%202.15.26%20PM.png?raw=true)---
 
 ### Installation
 
@@ -143,8 +139,7 @@ The plugin’s functionality is enhanced by integrating with other Obsidian plug
 - **Tag Wrangler:** Simplify tag management, ensuring consistent categorization of topics and mentions.
 
 These tools enable users to build tailored workflows for efficient data handling and visualization.
-![[Screenshot 2024-12-11 at 2.51.41 PM 1.png]]
----
+![Screenshot 2024-12-11 at 2.51.41 PM 1.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Screenshot%202024-12-11%20at%202.51.41%20PM%201.png?raw=true)---
 # Obsidian
 
 
@@ -171,8 +166,7 @@ mentions: [Array of mentioned entities]
 ```
 
 
-![[frontmatter.png]]
-#### Profiles Metadata
+![frontmatter.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/frontmatter.png?raw=true)#### Profiles Metadata
 
 ```yaml
 ---
@@ -185,8 +179,7 @@ picture: [Profile picture URL]
 ---
 ```
 
-![[profile metadata.png]]
-
+![profile metadata.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/profile%20metadata.png?raw=true)
 
 
 **Markdown:** is the core formatting language used by Obsidian, allowing for lightweight and highly readable text files. Within the Nostr Graph Plugin, Nostr notes are converted into Markdown format, ensuring seamless compatibility with Obsidian’s features, such as linking, search, and graph view.
@@ -198,8 +191,7 @@ picture: [Profile picture URL]
 
 **Graph View:** Obsidian’s graph view provides a visual representation of the relationships between notes. When paired with the Nostr Graph Plugin, this feature helps users explore the connections between profiles, conversations, and related topics, offering insights into the structure and flow of discussions. Understand complex discussions by visualizing entire conversation threads in graph view.
 
-![[local graph discovery.gif]]
-
+![local graph discovery.gif](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/local%20graph%20discovery.gif?raw=true)
 
 ---
 
@@ -225,7 +217,7 @@ The plugin offers several commands to streamline content management:
 
 - **Fetch Notes:** Retrieve notes associated with your public key.
 - **Fetch Notes by Hex Key:** Fetch notes linked to a specific hex key. Auto populates target Pub key in Note or Profile.
-- 
+  
 ![hex key modal.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/hex%20key%20modal.png?raw=true)
 
 
@@ -246,8 +238,7 @@ The plugin provides extensive configuration options:
 - **Update Interval:** Set the time interval (in seconds) for auto-updates.
 - **Reply Directory:** Save replies in a separate directory for better organization.
 
-![[nostr graph settings 1.png]]
-
+![nostr graph settings 1.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/nostr%20graph%20settings.png?raw=true)
 ---
 
 ### Additional Tools
