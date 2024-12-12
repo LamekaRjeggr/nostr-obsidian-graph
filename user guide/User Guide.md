@@ -87,7 +87,9 @@ Nostr relies on two key components: clients and relays. Clients are the user-fac
 
 The Nostr Graph Plugin uses Obsidian’s powerful graph view and data handling capabilities to provide a visually way to explore relationships between notes and profiles. This feature is central to understanding the connections within your Nostr content, whether you’re mapping discussions or analyzing user interactions.
 
-![gif.gif](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/gif.gif?raw=true)#### Linking Pathways
+![gif.gif](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/gif.gif?raw=true)
+
+#### Linking Pathways
 
 The plugin automatically establishes connections between related notes and profiles. These links allow for seamless navigation between associated content, potentially making it easier to trace discussions, follow reply threads, and understand interactions.
 
@@ -99,7 +101,9 @@ Utilize Obsidian’s local graph feature to focus on specific notes and their im
 #### Tag Search
 
 With metadata integration, the plugin supports tag-based searches to filter and locate notes quickly. Users can categorize content using topics, events, or keywords, enabling efficient exploration of their vault.
-![Screenshot 2024-12-11 at 2.15.26 PM 2.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Screenshot%202024-12-11%20at%202.15.26%20PM.png?raw=true)---
+![Screenshot 2024-12-11 at 2.15.26 PM 2.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Screenshot%202024-12-11%20at%202.15.26%20PM.png?raw=true)
+
+---
 
 ### Installation
 
@@ -139,7 +143,9 @@ The plugin’s functionality is enhanced by integrating with other Obsidian plug
 - **Tag Wrangler:** Simplify tag management, ensuring consistent categorization of topics and mentions.
 
 These tools enable users to build tailored workflows for efficient data handling and visualization.
-![Screenshot 2024-12-11 at 2.51.41 PM 1.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Screenshot%202024-12-11%20at%202.51.41%20PM%201.png?raw=true)---
+![Screenshot 2024-12-11 at 2.51.41 PM 1.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Screenshot%202024-12-11%20at%202.51.41%20PM%201.png?raw=true)
+
+---
 # Obsidian
 
 
@@ -166,7 +172,9 @@ mentions: [Array of mentioned entities]
 ```
 
 
-![frontmatter.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/frontmatter.png?raw=true)#### Profiles Metadata
+![frontmatter.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/frontmatter.png?raw=true)
+
+#### Profiles Metadata
 
 ```yaml
 ---
@@ -239,6 +247,7 @@ The plugin provides extensive configuration options:
 - **Reply Directory:** Save replies in a separate directory for better organization.
 
 ![nostr graph settings 1.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/nostr%20graph%20settings.png?raw=true)
+
 ---
 
 ### Additional Tools
