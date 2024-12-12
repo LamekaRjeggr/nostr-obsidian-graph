@@ -226,7 +226,7 @@ The plugin offers several commands to streamline content management:
 - **Fetch Notes:** Retrieve notes associated with your public key.
 - **Fetch Notes by Hex Key:** Fetch notes linked to a specific hex key. Auto populates target Pub key in Note or Profile.
 - 
-![[hex key modal.png]]
+[![[hex key modal.png]]](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/hex%20key%20modal.png?raw=true)
 
 
 - **Fetch Mentioned Profiles:** Update profiles for users mentioned in your notes.
