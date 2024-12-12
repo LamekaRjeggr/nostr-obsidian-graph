@@ -8,33 +8,16 @@ The Nostr Graph Plugin simplifies the management of Nostr content by automating 
 
 ---
 
-## **Fork **
+## **Fork**
 
-###
 
-- **New to [Nostr]?** 
+- **New to Nostr?** 
 
-- **New to [Obsidian]?**&#x20;
+- **New to Obsidian?**
 
 - **New to Both?** Get started with a primer on how Nostr functions as a decentralized protocol and how Obsidian enhances data organization.
 
 - **Using Both Already?** Plug in your npub, follow at least one person, and explore the integration possibilities.
-
-
-
-## (#Obsidian)
-
-
-
-**Markdown:** is the core formatting language used by Obsidian, allowing for lightweight and highly readable text files. Within the Nostr Graph Plugin, Nostr notes are converted into Markdown format, ensuring seamless compatibility with Obsidian’s features, such as linking, search, and graph view.
-
-
-
-**Frontmatter Metadata:**  Frontmatter metadata in Obsidian serves as a structured way to store information about a note, such as tags, timestamps, and note ids. The plugin uses frontmatter to preserve key Nostr data, enabling efficient organization and integration with Obsidian’s advanced metadata tools.
-
-
-
-**Graph View:** Obsidian’s graph view provides a visual representation of the relationships between notes. When paired with the Nostr Graph Plugin, this feature helps users explore the connections between profiles, conversations, and related topics, offering insights into the structure and flow of discussions. Understand complex discussions by visualizing entire conversation threads in graph view.
 
 
 
@@ -46,8 +29,6 @@ The Nostr Graph Plugin simplifies the management of Nostr content by automating 
 
 
 
-
-
 ### Using the Plugin
 
 #### Fetching Data
@@ -56,6 +37,7 @@ The plugin provides several commands to retrieve and organize Nostr content:
 - **Fetch Notes:** Retrieves notes associated with your configured public key (npub).
 - **Fetch Mentioned Profiles:** Fetches profiles mentioned within the retrieved notes.
 - **Fetch Mentioned Notes:** Collects notes referenced in e-tags for comprehensive dataset creation.
+![Commands.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Commands.png?raw=true)
 
 These commands are accessible via the command palette (Cmd/Ctrl+P) or hotkeys. Notifications inform you of the fetching progress and results.
 
@@ -64,16 +46,19 @@ These commands are accessible via the command palette (Cmd/Ctrl+P) or hotkeys. N
 - **Profiles Storage:** Profiles are stored in `nostr/profiles/`, with optional subdirectories for mentions.
 - **Automatic Linking:** Relationships between notes, profiles, and mentions are automatically established for seamless navigation.
 
-#### Auto-Update
-Enable the auto-update feature to periodically fetch new data. Configure the update interval to control how frequently the plugin checks for updates. This ensures that your content remains current without manual intervention.
 
 
 
 
 
+### What is Nostr?
 
+**Notes and 
+Other 
+Stuff 
+Transmitted by 
+Relays**
 
-### What is (#Nostr)?
 
 #### A Decentralized, Open-Source Protocol for Social Media
 
@@ -87,7 +72,7 @@ Nostr is a decentralized protocol that enables secure, censorship-resistant comm
 
 On Nostr, notes are formatted as JSON objects containing fields like the public key of the author, a Unix timestamp, event kind, tags, and content. This standardized structure ensures that notes are lightweight, interoperable, and easy to parse by relays and clients. In Obsidian, this format aligns closely with its use of frontmatter metadata, enabling seamless integration. The plugin converts Nostr notes into Markdown files, storing key information such as timestamps, tags, and relationships in the frontmatter. This approach allows users to benefit from Obsidian’s search, linking, and organizational tools while preserving the integrity of the original Nostr data.
 
-#### Getting Started with Nostr Profiles
+#### Getting Started on Nostr
 
 To begin using Nostr, you can create a free profile through services such as [nostrplebs.com](https://nostrplebs.com) or similar platforms. Once your profile is set up and you are following at least one person, you can integrate it with the Nostr Graph Plugin by entering your public key (npub) in the plugin settings. This ensures the plugin can fetch relevant notes and profiles, allowing you to immediately start organizing and exploring Nostr content within Obsidian.
 
@@ -97,13 +82,12 @@ Nostr relies on two key components: clients and relays. Clients are the user-fac
 
 ---
 
-###
-
----
 
 ### Graph View and Data Exploration
 
-The Nostr Graph Plugin leverages Obsidian’s powerful graph view and data handling capabilities to provide a visually intuitive way to explore relationships between notes and profiles. This feature is central to understanding the connections within your Nostr content, whether you’re mapping discussions or analyzing user interactions.
+The Nostr Graph Plugin uses Obsidian’s powerful graph view and data handling capabilities to provide a visually way to explore relationships between notes and profiles. This feature is central to understanding the connections within your Nostr content, whether you’re mapping discussions or analyzing user interactions.
+
+![gif.gif](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/gif.gif?raw=true)
 
 #### Linking Pathways
 
@@ -113,9 +97,11 @@ The plugin automatically establishes connections between related notes and profi
 
 Utilize Obsidian’s local graph feature to focus on specific notes and their immediate relationships. This is especially helpful when diving into a particular topic or conversation, as it highlights relevant connections without overwhelming the view.
 
+
 #### Tag Search
 
 With metadata integration, the plugin supports tag-based searches to filter and locate notes quickly. Users can categorize content using topics, events, or keywords, enabling efficient exploration of their vault.
+![Screenshot 2024-12-11 at 2.15.26 PM 2.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Screenshot%202024-12-11%20at%202.15.26%20PM.png?raw=true)
 
 ---
 
@@ -128,6 +114,8 @@ To install the plugin, follow these steps:
 3. Click **Install** and enable the plugin.
 4. Access the plugin’s configuration options under **Settings** > **Nostr Graph Plugin**.
 5. Alternatively, visit the plugin's [GitHub repository](https://github.com/LamekaRjeggr/nostr-obsidian-graph.git) for detailed installation instructions provided in the README file.
+
+Coming Soon-ish
 
 To install the plugin, follow these steps:
 
@@ -155,8 +143,12 @@ The plugin’s functionality is enhanced by integrating with other Obsidian plug
 - **Tag Wrangler:** Simplify tag management, ensuring consistent categorization of topics and mentions.
 
 These tools enable users to build tailored workflows for efficient data handling and visualization.
+![Screenshot 2024-12-11 at 2.51.41 PM 1.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/Screenshot%202024-12-11%20at%202.51.41%20PM%201.png?raw=true)
 
 ---
+# Obsidian
+
+
 
 ### Metadata Overview
 
@@ -179,6 +171,9 @@ mentions: [Array of mentioned entities]
 ---
 ```
 
+
+![frontmatter.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/frontmatter.png?raw=true)
+
 #### Profiles Metadata
 
 ```yaml
@@ -191,6 +186,20 @@ nip05: [Verified identifier]
 picture: [Profile picture URL]
 ---
 ```
+
+![profile metadata.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/profile%20metadata.png?raw=true)
+
+
+**Markdown:** is the core formatting language used by Obsidian, allowing for lightweight and highly readable text files. Within the Nostr Graph Plugin, Nostr notes are converted into Markdown format, ensuring seamless compatibility with Obsidian’s features, such as linking, search, and graph view.
+
+
+**Frontmatter Metadata:**  Frontmatter metadata in Obsidian serves as a structured way to store information about a note, such as tags, timestamps, and note ids. The plugin uses frontmatter to preserve key Nostr data, enabling efficient organization and integration with Obsidian’s advanced metadata tools.
+
+
+
+**Graph View:** Obsidian’s graph view provides a visual representation of the relationships between notes. When paired with the Nostr Graph Plugin, this feature helps users explore the connections between profiles, conversations, and related topics, offering insights into the structure and flow of discussions. Understand complex discussions by visualizing entire conversation threads in graph view.
+
+![local graph discovery.gif](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/local%20graph%20discovery.gif?raw=true)
 
 ---
 
@@ -215,7 +224,11 @@ This layout ensures clarity and simplifies navigation.
 The plugin offers several commands to streamline content management:
 
 - **Fetch Notes:** Retrieve notes associated with your public key.
-- **Fetch Notes by Hex Key:** Fetch notes linked to a specific hex key.
+- **Fetch Notes by Hex Key:** Fetch notes linked to a specific hex key. Auto populates target Pub key in Note or Profile.
+  
+![hex key modal.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/hex%20key%20modal.png?raw=true)
+
+
 - **Fetch Mentioned Profiles:** Update profiles for users mentioned in your notes.
 - **Fetch Mentioned Notes:** Collect referenced notes using Mod+Shift+N.
 
@@ -233,15 +246,18 @@ The plugin provides extensive configuration options:
 - **Update Interval:** Set the time interval (in seconds) for auto-updates.
 - **Reply Directory:** Save replies in a separate directory for better organization.
 
+![nostr graph settings 1.png](https://github.com/LamekaRjeggr/nostr-obsidian-graph/blob/master/user%20guide/nostr%20graph%20settings.png?raw=true)
+
 ---
 
 ### Additional Tools
 
 The Nostr Graph Plugin integrates seamlessly with other Nostr-focused plugins to extend its functionality:
 
-- **Nostr Writer:** This plugin allows users to draft and publish notes directly to Nostr relays from within Obsidian. It complements the Nostr Graph Plugin by providing content creation tools that integrate with the organizational features offered by this plugin.
+- **==Nostr Writer==:** This plugin allows users to draft and publish notes directly to Nostr relays from within Obsidian. It complements the Nostr Graph Plugin by providing content creation tools that integrate with the organizational features offered by this plugin.
 
-- **Nostr Commentr (Upcoming):** A dedicated plugin for adding comments to Nostr notes. By accepting your nsec key, it provides a modal that enables you to comment on any open note displayed in Obsidian. This makes interacting with Nostr content more interactive and streamlined.
+- **==Nostr Commentr== (Upcoming):** A dedicated plugin for adding comments to Nostr notes. By accepting your nsec key, it provides a modal that enables you to comment on any open note displayed in Obsidian. This makes interacting with Nostr content more interactive and streamlined.
+
 
 ### Support and Feedback
 
