@@ -105,8 +105,6 @@ With metadata integration, the plugin supports tag-based searches to filter and 
 
 ---
 
-### Installation
-
 To install the Nostr Obsidian Graph plugin from GitHub, follow these steps:
 
 Manual Installation:
@@ -116,8 +114,8 @@ Manual Installation:
 	2.	Extract the Files:
 	•	Locate the downloaded ZIP file on your computer and extract its contents to a folder.
 	3.	Copy to Obsidian Plugins Folder:
-	•	Find your Obsidian vault folder.
-	•	Within the vault, navigate to the .obsidian/plugins/ directory.
+	•	Navigate to your Obsidian vault folder.
+	•	Within the vault, go to the .obsidian/plugins/ directory.
 	•	Copy the extracted plugin folder into the plugins directory.
 	•	Ensure the folder is named nostr-obsidian-graph.
 	4.	Enable the Plugin in Obsidian:
@@ -131,7 +129,7 @@ Alternative Method: Cloning via Git:
 	1.	Open Terminal:
 	•	Access your terminal application.
 	2.	Navigate to Plugins Directory:
-	•	Change the directory to your Obsidian vault’s .obsidian/plugins/ folder.
+	•	Change the directory to your Obsidian vault’s .obsidian/plugins/ folder:
 
 cd path/to/your/vault/.obsidian/plugins/
 
@@ -146,7 +144,7 @@ git clone https://github.com/LamekaRjeggr/nostr-obsidian-graph.git
 	•	Restart Obsidian.
 	•	Follow steps 4 and 5 from the manual installation to enable and configure the plugin.
 
-Note: The option to install this plugin directly from Obsidian’s Community Plugins is planned for future release.
+Note: The option to install this plugin directly from Obsidian’s Community Plugins is planned for a future release.
 
 For more information, visit the Nostr Obsidian Graph GitHub repository.
 
