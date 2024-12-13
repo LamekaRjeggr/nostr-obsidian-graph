@@ -65,6 +65,14 @@ Rename the folder to nostr-obsidian-graph if it isn’t already.
 Open Obsidian, navigate to Settings > Community Plugins, and enable the Nostr Graph Plugin.
 Access the plugin’s configuration options under Settings > Nostr Graph Plugin to set up your preferences.
 
+1. Direct GitHub Clone
+	•	Clone the repository directly into the Obsidian plugins folder:
+	1.	Open a terminal and navigate to your Obsidian vault’s .obsidian/plugins/ directory.
+	2.	Run the following command:
+    
+ 3.	git clone https://github.com/LamekaRjeggr/nostr-obsidian-graph.git
+ 4.  Restart Obsidian and enable the plugin from Settings > Community Plugins.
+
 Install via Obsidian Community Plugins (Coming Soon)
 
 ## Note Structure
