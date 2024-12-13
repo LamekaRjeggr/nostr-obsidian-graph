@@ -107,22 +107,48 @@ With metadata integration, the plugin supports tag-based searches to filter and 
 
 ### Installation
 
-To install the plugin, follow these steps:
+To install the Nostr Obsidian Graph plugin from GitHub, follow these steps:
 
-1. Open Obsidian and navigate to **Settings** > **Community Plugins**.
-2. Search for “Nostr Graph” in the plugin browser.
-3. Click **Install** and enable the plugin.
-4. Access the plugin’s configuration options under **Settings** > **Nostr Graph Plugin**.
-5. Alternatively, visit the plugin's [GitHub repository](https://github.com/LamekaRjeggr/nostr-obsidian-graph.git) for detailed installation instructions provided in the README file.
+Manual Installation:
+	1.	Download the Plugin:
+	•	Visit the Nostr Obsidian Graph GitHub repository.
+	•	Click the “Code” button and select “Download ZIP.”
+	2.	Extract the Files:
+	•	Locate the downloaded ZIP file on your computer and extract its contents to a folder.
+	3.	Copy to Obsidian Plugins Folder:
+	•	Find your Obsidian vault folder.
+	•	Within the vault, navigate to the .obsidian/plugins/ directory.
+	•	Copy the extracted plugin folder into the plugins directory.
+	•	Ensure the folder is named nostr-obsidian-graph.
+	4.	Enable the Plugin in Obsidian:
+	•	Open Obsidian.
+	•	Go to Settings > Community Plugins.
+	•	Enable the “Nostr Obsidian Graph” plugin.
+	5.	Configure the Plugin:
+	•	In Obsidian, navigate to Settings > Nostr Obsidian Graph to adjust the plugin’s settings to your preference.
 
-Coming Soon-ish
+Alternative Method: Cloning via Git:
+	1.	Open Terminal:
+	•	Access your terminal application.
+	2.	Navigate to Plugins Directory:
+	•	Change the directory to your Obsidian vault’s .obsidian/plugins/ folder.
 
-To install the plugin, follow these steps:
+cd path/to/your/vault/.obsidian/plugins/
 
-1. Open Obsidian and navigate to **Settings** > **Community Plugins**.
-2. Search for “Nostr Graph” in the plugin browser.
-3. Click **Install** and enable the plugin.
-4. Access the plugin’s configuration options under **Settings** > **Nostr Graph Plugin**.
+
+	3.	Clone the Repository:
+	•	Run the following command to clone the plugin repository:
+
+git clone https://github.com/LamekaRjeggr/nostr-obsidian-graph.git
+
+
+	4.	Enable and Configure the Plugin:
+	•	Restart Obsidian.
+	•	Follow steps 4 and 5 from the manual installation to enable and configure the plugin.
+
+Note: The option to install this plugin directly from Obsidian’s Community Plugins is planned for future release.
+
+For more information, visit the Nostr Obsidian Graph GitHub repository.
 
 ---
 
