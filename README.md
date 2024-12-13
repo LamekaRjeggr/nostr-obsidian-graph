@@ -52,10 +52,20 @@ Compatibility
 
 ## Installation
 
-1. Open Obsidian Settings
-2. Go to Community Plugins
-3. Search for "Nostr Graph"
-4. Install and enable the plugin
+
+Install via GitHub
+
+To manually install the plugin from GitHub, follow these steps:
+Visit the Nostr Graph Plugin GitHub repository.
+Download the repository as a ZIP file by clicking the Code button and selecting Download ZIP.
+Extract the ZIP file to a folder on your computer.
+Locate your Obsidian vault folder, then navigate to the .obsidian/plugins/ directory within it.
+Copy the extracted folder into the plugins directory.
+Rename the folder to nostr-obsidian-graph if it isn’t already.
+Open Obsidian, navigate to Settings > Community Plugins, and enable the Nostr Graph Plugin.
+Access the plugin’s configuration options under Settings > Nostr Graph Plugin to set up your preferences.
+
+Install via Obsidian Community Plugins (Coming Soon)
 
 ## Note Structure
 
