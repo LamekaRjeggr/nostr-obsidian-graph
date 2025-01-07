@@ -1,0 +1,10 @@
+{
+    "id": "nostr-obsidian-graph",
+    "name": "Nostr Graph",
+    "version": "0.30.0",
+    "minAppVersion": "0.15.0",
+    "description": "Connect your Obsidian vault to the Nostr network and visualize relationships between notes, profiles, and conversations.",
+    "author": "Cline",
+    "authorUrl": "",
+    "isDesktopOnly": false
+}
