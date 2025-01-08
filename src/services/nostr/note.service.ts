@@ -2,21 +2,30 @@ import { INoteService } from '../../interfaces';
 import { NostrEvent, Filter } from '../../interfaces';
 import { RelayService } from '../core/relay.service';
 import { EventService } from '../core/event.service';
+import { SearchService, SearchOptions } from '../core/search';
 
 export class NoteService implements INoteService {
+    private searchService: SearchService;
+
     constructor(
         private relayService: RelayService,
         private eventService: EventService
-    ) {}
+    ) {
+        this.searchService = new SearchService(relayService, eventService);
+    }
 
     async searchNotes(keyword: string): Promise<NostrEvent[]> {
-        await this.relayService.ensureConnected();
-        
-        return this.fetchEvents({
-            kinds: [1],
-            search: keyword,
-            limit: 20
-        });
+        // Use new search service with backward compatible defaults
+        return this.searchService.searchKeywordWithTime(keyword, 24, 20);
+    }
+
+    /**
+     * Enhanced search with more options
+     * @param options Search criteria including keyword, time range, and limit
+     * @returns Array of matching NostrEvent objects
+     */
+    async searchWithOptions(options: SearchOptions): Promise<NostrEvent[]> {
+        return this.searchService.search(options);
     }
 
     async fetchEvent(id: string): Promise<NostrEvent | null> {
