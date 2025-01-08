@@ -6,6 +6,9 @@
 - Only supports npub format in settings (hex format will be converted)
 - Profile updates might have slight delay due to relay latency
 - Profile images are stored as URLs, not downloaded locally
+- Profile links use secure format: [pubkey](display_name.md)
+  - Ensures cryptographic verification
+  - Maintains readable graph display
 
 ### Pipeline System
 - Templates cannot be modified at runtime
@@ -52,6 +55,8 @@ If a template operation fails:
 ### Note Navigation
 If thread navigation is difficult:
 1. Use Obsidian graph view to visualize connections
+   - Profile nodes show display names
+   - Links maintain cryptographic security
 2. Follow reference links at bottom of notes
 3. Use Obsidian search to find related notes
 4. Check note frontmatter for raw nostr_tags

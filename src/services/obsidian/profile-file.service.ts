@@ -6,6 +6,7 @@ import { FrontmatterService } from '../core/frontmatter.service';
 export interface IProfileFileService {
     saveProfile(event: NostrEvent, directory?: string): Promise<void>;
     getProfile(pubkey: string): Promise<NostrEvent>;
+    getProfileByDisplayName(displayName: string): Promise<NostrEvent | null>;
 }
 
 export class ProfileFileService implements IProfileFileService {
@@ -27,12 +28,14 @@ export class ProfileFileService implements IProfileFileService {
             const targetDir = directory || this.defaultProfileDir;
             const filepath = `${targetDir}/${displayName}.md`;
 
-            // Create frontmatter with metadata
+            // Create frontmatter with metadata and ensure pubkey is preserved
             const frontmatter = {
                 ...FrontmatterService.createBaseFrontmatter(event),
                 name: profileData.name || '',
                 display_name: profileData.display_name || '',
-                nip05: profileData.nip05 || ''
+                nip05: profileData.nip05 || '',
+                pubkey: event.pubkey,  // Store pubkey for verification
+                aliases: [displayName] // Use display name for graph view
             };
 
             // Create markdown content with collapsible JSON section
@@ -72,7 +75,7 @@ export class ProfileFileService implements IProfileFileService {
         for (const file of files) {
             const content = await this.obsidianFileService.readFile(file);
             const frontmatter = this.obsidianFileService.getFrontmatter(content);
-            if (frontmatter?.kind === 0) {
+            if (frontmatter?.kind === 0 && frontmatter?.pubkey === pubkey) {
                 const profileContent = {
                     name: frontmatter.name,
                     display_name: frontmatter.display_name,
@@ -83,5 +86,30 @@ export class ProfileFileService implements IProfileFileService {
         }
 
         throw new Error(`No profile found for ${pubkey}`);
+    }
+
+    async getProfileByDisplayName(displayName: string): Promise<NostrEvent | null> {
+        try {
+            const file = this.obsidianFileService.getFileByPath(`${this.defaultProfileDir}/${displayName}.md`);
+            if (!file) {
+                return null;
+            }
+            const content = await this.obsidianFileService.readFile(file);
+            const frontmatter = this.obsidianFileService.getFrontmatter(content);
+            
+            // Verify this is a valid profile
+            if (frontmatter?.kind === 0 && frontmatter?.pubkey) {
+                const profileContent = {
+                    name: frontmatter.name,
+                    display_name: frontmatter.display_name,
+                    nip05: frontmatter.nip05
+                };
+                return FrontmatterService.createEventFromFrontmatter(frontmatter, JSON.stringify(profileContent));
+            }
+            return null;
+        } catch (error) {
+            console.error(`Failed to get profile by display name: ${displayName}`, error);
+            return null;
+        }
     }
 }

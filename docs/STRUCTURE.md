@@ -97,6 +97,8 @@ nostr_tags: []
 
 This is the note content
 
+Author: [pubkey](display_name.md)  # Secure linking format
+
 ---
 > [!note]- Raw Event JSON
 > ```json
@@ -111,6 +113,34 @@ This is the note content
 > }
 > ```
 ```
+
+### Secure Linking System
+
+The plugin implements a cryptographically secure linking system that balances security with readability:
+
+1. Link Format:
+   ```markdown
+   [pubkey](display_name.md)
+   ```
+   - Link text: Full pubkey (for verification)
+   - Link target: Display name (for readability)
+
+2. Security Features:
+   - Pubkey always visible in link text
+   - Profile files contain pubkey in frontmatter
+   - Links verified through pubkey matching
+   - Impersonation prevented by pubkey verification
+
+3. Benefits:
+   - Standard Markdown compatibility
+   - Clean graph visualization
+   - Cryptographic security
+   - Human-readable navigation
+
+4. Implementation:
+   - NoteFileService creates secure links
+   - ProfileFileService manages profile files
+   - ObsidianFileService handles lookup and verification
 
 #### Profile Files (nostr/user profile/[name].md):
 ```markdown

@@ -1,4 +1,4 @@
-import { App, TFile, CachedMetadata } from 'obsidian';
+import { App, TFile, TFolder, CachedMetadata } from 'obsidian';
 
 // Type for frontmatter data
 export interface FrontmatterData {
@@ -20,6 +20,7 @@ export interface IObsidianFileService {
     getFrontmatterFromCache(file: TFile): any;  // Keep for compatibility
     createFrontmatter(data: any): string;
     getProfileFrontmatter(pubkey: string): any;
+    getFileByPath(path: string): TFile | null;  // New method for file lookup
 }
 
 export class ObsidianFileService implements IObsidianFileService {
@@ -154,12 +155,32 @@ export class ObsidianFileService implements IObsidianFileService {
     }
 
     getProfileFrontmatter(pubkey: string): any {
+        // First try to find profile by pubkey
         const profilePath = `nostr/user profile/${pubkey}.md`;
-        const file = this.app.vault.getAbstractFileByPath(profilePath);
-        if (file instanceof TFile) {
-            return this.getFrontmatterFromCache(file);
+        let file = this.getFileByPath(profilePath);
+        
+        // If not found by pubkey, search through all profiles
+        if (!file) {
+            const profileDir = this.app.vault.getAbstractFileByPath('nostr/user profile');
+            if (profileDir instanceof TFolder) {
+                for (const child of profileDir.children) {
+                    if (child instanceof TFile) {
+                        const frontmatter = this.getFrontmatterFromCache(child);
+                        if (frontmatter?.pubkey === pubkey) {
+                            file = child;
+                            break;
+                        }
+                    }
+                }
+            }
         }
-        return null;
+
+        return file ? this.getFrontmatterFromCache(file) : null;
+    }
+
+    getFileByPath(path: string): TFile | null {
+        const file = this.app.vault.getAbstractFileByPath(path);
+        return file instanceof TFile ? file : null;
     }
 
     // Clean up method to be called when plugin unloads
