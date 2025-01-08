@@ -13,6 +13,8 @@ export interface FrontmatterData {
     [key: string]: any;
 }
 
+import NostrPlugin from '../../main';
+
 export interface IObsidianFileService {
     createOrUpdateFile(path: string, content: string): Promise<TFile>;
     readFile(file: TFile): Promise<string>;
@@ -26,7 +28,9 @@ export interface IObsidianFileService {
 export class ObsidianFileService implements IObsidianFileService {
     private metadataCache: Map<string, CachedMetadata> = new Map();
 
-    constructor(private app: App) {
+    constructor(
+        private app: App
+    ) {
         // Listen for metadata changes
         this.app.metadataCache.on('changed', (file: TFile, _data: string, cache: CachedMetadata) => {
             this.metadataCache.set(file.path, cache);

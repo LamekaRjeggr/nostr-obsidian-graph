@@ -11,7 +11,9 @@ import { NostrEvent } from '../../interfaces';
 
 export class VaultService implements IVaultService {
     private readonly baseDir = 'nostr';
-    private readonly notesDir = 'nostr/user notes';
+    private readonly followsNotesDir = 'nostr/follows notes';
+    private readonly notesDir = 'nostr/notes';
+    private readonly userNotesDir = 'nostr/user notes';
     private readonly profilesDir = 'nostr/user profile';
     private readonly followsDir = 'nostr/user follows';
     private readonly followedProfilesDir = 'nostr/followed profiles';
@@ -25,7 +27,7 @@ export class VaultService implements IVaultService {
         private followFileService: IFollowFileService
     ) {}
 
-    async saveEvent(event: NostrEvent, isFollowedProfile: boolean = false): Promise<void> {
+    async saveEvent(event: NostrEvent, isFollowedProfile: boolean = false, isUserNote: boolean = false): Promise<void> {
         switch (event.kind) {
             case 0:
                 if (isFollowedProfile) {
@@ -35,7 +37,11 @@ export class VaultService implements IVaultService {
                 }
                 break;
             case 1:
-                await this.noteFileService.saveNote(event);
+                if (isUserNote) {
+                    await this.noteFileService.saveNote(event, this.userNotesDir);
+                } else {
+                    await this.noteFileService.saveNote(event);
+                }
                 break;
             case 3:
                 await this.followFileService.saveFollow(event);
@@ -48,7 +54,9 @@ export class VaultService implements IVaultService {
     async ensureDirectories(): Promise<void> {
         const dirs = [
             this.baseDir,
+            this.followsNotesDir,
             this.notesDir,
+            this.userNotesDir,
             this.profilesDir,
             this.followsDir,
             this.followedProfilesDir

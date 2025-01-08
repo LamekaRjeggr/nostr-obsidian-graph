@@ -54,6 +54,22 @@ export default class NostrPlugin extends Plugin {
             this.indexService = new MetadataCacheService(this.app);
             this.linkService = new LinkService(this.app);
             
+            // Initialize Nostr services first
+            this.profileService = new ProfileService(
+                this.relayService,
+                this.eventService
+            );
+            
+            this.noteService = new NoteService(
+                this.relayService,
+                this.eventService
+            );
+            
+            this.followService = new FollowService(
+                this.relayService,
+                this.eventService
+            );
+
             // Initialize file services
             this.profileFileService = new ProfileFileService(
                 this.obsidianFileService,
@@ -76,22 +92,6 @@ export default class NostrPlugin extends Plugin {
                 this.profileFileService,
                 this.noteFileService,
                 this.followFileService
-            );
-            
-            // Initialize Nostr services
-            this.profileService = new ProfileService(
-                this.relayService,
-                this.eventService
-            );
-            
-            this.noteService = new NoteService(
-                this.relayService,
-                this.eventService
-            );
-            
-            this.followService = new FollowService(
-                this.relayService,
-                this.eventService
             );
 
             // Store relay URLs (connection will happen on first fetch)
@@ -156,7 +156,7 @@ export default class NostrPlugin extends Plugin {
                             limit: 50
                         });
                         for (const event of events) {
-                            await this.vaultService.saveEvent(event as NostrEvent);
+                            await this.vaultService.saveEvent(event as NostrEvent, false, true);
                             await this.linkService.updateLinks(event as NostrEvent);
                         }
                         new Notice(`${events.length} notes fetched`);

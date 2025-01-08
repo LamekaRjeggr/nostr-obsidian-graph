@@ -36,6 +36,7 @@ export interface IIndexService {
     findEventFile(eventId: string): Promise<TFile | null>;
     findEventsByAuthor(pubkey: string): Promise<TFile[]>;
     findEventsByKind(kind: number): Promise<TFile[]>;
+    findEventsByKindInDir(kind: number, directory: string): Promise<TFile[]>;
     getEventsFromFiles(files: TFile[]): Promise<NostrEvent[]>;
 }
 
@@ -84,7 +85,7 @@ export interface IFollowService {
 
 // File Services
 export interface INoteFileService {
-    saveNote(event: NostrEvent): Promise<void>;
+    saveNote(event: NostrEvent, targetDir?: string): Promise<void>;
     getNote(id: string): Promise<NostrEvent>;
 }
 
@@ -108,7 +109,7 @@ export interface IProfileFileService {
 }
 
 export interface IVaultService {
-    saveEvent(event: NostrEvent, isFollowedProfile?: boolean): Promise<void>;
+    saveEvent(event: NostrEvent, isFollowedProfile?: boolean, isUserNote?: boolean): Promise<void>;
     getEvent(id: string): Promise<NostrEvent>;
     ensureDirectories(): Promise<void>;
     getEventsByKind(kind: number): Promise<NostrEvent[]>;

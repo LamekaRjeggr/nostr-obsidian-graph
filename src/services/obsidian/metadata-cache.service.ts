@@ -72,6 +72,20 @@ export class MetadataCacheService implements IIndexService {
     }
 
     /**
+     * Find all files by event kind in a specific directory using metadata cache
+     */
+    async findEventsByKindInDir(kind: number, directory: string): Promise<TFile[]> {
+        const results: TFile[] = [];
+        for (const [path, cache] of this.metadataCache.entries()) {
+            if (path.startsWith(directory) && cache.frontmatter?.event?.kind === kind) {
+                const file = this.fileCache.get(path);
+                if (file) results.push(file);
+            }
+        }
+        return results;
+    }
+
+    /**
      * Get events from files using metadata cache
      */
     async getEventsFromFiles(files: TFile[]): Promise<NostrEvent[]> {
