@@ -1,124 +1,129 @@
 # Nostr Graph Plugin for Obsidian
 
-Connect your Obsidian vault to the Nostr network and visualize relationships between notes, profiles, and conversations.
+A powerful Obsidian plugin that connects your vault to the Nostr network, enabling you to store and visualize your Nostr content (notes, profiles, and conversations) as markdown files while maintaining bidirectional synchronization with the network.
 
 ## Features
 
-- Fetch and store Nostr profiles as markdown files
-- Build user graphs with contacts and notes
-- Real-time updates through relay subscriptions
-- Configurable relay connections
+### Core Functionality
+- Fetch and store Nostr events as markdown files with complete metadata
+- Real-time synchronization with Nostr relays
+- Automatic directory organization for different event types
+- Bidirectional updates between Obsidian and Nostr
+
+### Content Management
+- Store text notes (kind 1) with thread context
+- Maintain user profiles (kind 0) with metadata
+- Track contact lists (kind 3) and relationships
+- Preserve complete event data in frontmatter
+- Link profiles and notes with Obsidian references
+
+### Integration Features
+- Obsidian graph visualization support
+- Command palette integration
+- Context menu for quick actions
+- Real-time relay subscriptions
 - Auto-sync capabilities
-- Note synchronization with references
-- Thread tracking and linking
-- Profile mentions with links
-- Obsidian graph integration
-
-## Setup
-
-1. Install the plugin
-2. Open settings and configure:
-   - Enter your npub (NIP-19 format)
-   - Add/enable relays
-   - Configure sync options
-
-## Commands
-
-### `Sync Profile`
-Fetches a single profile:
-- Gets user metadata (kind 0)
-- Saves as markdown with frontmatter
-- Updates on changes
-
-### `Fetch User Graph`
-Builds a complete user graph:
-- Gets user profile
-- Fetches contact list
-- Gets profiles of contacts
-- Retrieves user notes
-- Enables real-time updates
-
-### `Sync All Profiles`
-Syncs all profiles in vault:
-- Updates existing profiles
-- Processes in batches
-- Shows progress
 
 ## Directory Structure
 
 ```
 nostr/
-├── profiles/           # User profiles with metadata
-├── notes/             # Nostr notes with references
-└── replies/           # Reply events and threads
+├── user notes/         # Text note events (kind 1)
+├── user profile/       # Profile metadata events (kind 0)
+├── user follows/       # Contact list events (kind 3)
+└── followed profiles/  # Profile metadata of followed users (kind 0)
 ```
 
-Notes are stored with:
-- Complete nostr metadata
-- Thread references
-- Profile mentions
-- Obsidian links
+## Installation
 
-## Templates
+Coming soon to Obsidian Community Plugins!
 
-The plugin uses templates to define what data to fetch:
+For now, you can install manually:
+1. Download the latest release from GitHub
+2. Extract the files to your vault's `.obsidian/plugins/nostr-obsidian-graph/` directory
+3. Reload Obsidian
+4. Enable the plugin in Settings → Community plugins
+5. Configure the plugin:
+   - Enter your public key (npub format)
+   - Add/enable relay connections
+   - Configure sync preferences
+   - Set update intervals
 
-```typescript
-// User Graph Template
-{
-    operations: [
-        userProfile,     // Kind 0
-        contactList,     // Kind 3
-        contactProfiles, // Kind 0
-        userNotes       // Kind 1
-    ]
-}
-```
+## Commands
 
-## Auto Sync
+### Profile Management
+- `Fetch Profile`: Get user metadata (kind 0)
+- `Fetch Follow List`: Get user's contact list (kind 3)
+- `Fetch Follow Profiles`: Get profiles of followed users
 
-Enable auto-sync in settings to:
-- Keep profiles up to date
-- Get real-time updates
-- Maintain graph connections
+### Note Management
+- `Fetch Notes`: Get user's recent notes
+- `Search Nostr Notes`: Search through notes
+- `Sync All`: Update all stored content
+
+### Context Menu
+Right-click on any Nostr file to:
+- Refresh profile data
+- Update note content
+- Fetch new replies
+- Update follow lists
+
+## Current Limitations
+
+- Only supports npub format in settings
+- Basic thread reconstruction
+- No automatic relay discovery
+- Profile updates may have slight delay
+- No compression for stored data
+- Limited error recovery in templates
+
+## Workarounds
+
+### Profile Updates
+If profiles aren't updating:
+1. Disable and re-enable the relay
+2. Use "Sync Profile" command
+3. Check relay connection status
+
+### Relay Connections
+If relays aren't connecting:
+1. Ensure URLs start with "wss://"
+2. Remove and re-add the relay
+3. Check settings status
+
+### Note Navigation
+For better thread navigation:
+1. Use Obsidian graph view
+2. Follow reference links
+3. Use Obsidian search
+4. Check note frontmatter
 
 ## Coming Soon
 
-- Graph visualization
-- Search capabilities
-- Custom note templates
-- Advanced filtering
+### Short Term
+- Relay health checks
+- Basic error recovery
+- Profile cleanup options
+- Thread visualization
+- Thread navigation UI
+
+### Medium Term
+- Template validation
+- Relay performance tracking
+- Conflict resolution
+
+### Long Term
+- Custom template creation
+- Advanced error recovery
+- Full pipeline monitoring
 
 ## Contributing
 
-See STRUCTURE.md for architecture details and contribution guidelines.
+See [STRUCTURE.md](STRUCTURE.md) for architecture details and contribution guidelines.
 
 ## Documentation
 
 ### Core References
-- [NDK Reference](NDK_REFERENCE.md) - NDK API reference
-- [Obsidian Reference](OBSIDIAN_REFERENCE.md) - Obsidian API reference
-- [Structure](STRUCTURE.md) - Pipeline architecture details
-
-### Development
-- [Known Issues](KNOWN_ISSUES.md) - Current limitations
-- [Roadmap](ROADMAP.md) - Planned features
-
-## Development
-
-### Setup
-```bash
-git clone https://github.com/user/nostr-obsidian-graph
-cd nostr-obsidian-graph
-npm install
-```
-
-### Build
-```bash
-npm run build
-```
-
-### Watch
-```bash
-npm run dev
-```
+- [STRUCTURE.md](STRUCTURE.md) - Architecture and implementation details
+- [OBSIDIAN_REFERENCE.md](OBSIDIAN_REFERENCE.md) - Obsidian API usage
+- [KNOWN_ISSUES.md](KNOWN_ISSUES.md) - Current limitations and workarounds

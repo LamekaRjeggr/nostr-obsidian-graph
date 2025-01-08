@@ -1,16 +1,36 @@
-import { App, TFile } from 'obsidian';
+import { App, TFile, CachedMetadata } from 'obsidian';
+
+// Type for frontmatter data
+export interface FrontmatterData {
+    created?: string;
+    kind?: number;
+    id?: string;
+    pubkey?: string;
+    nostr_tags?: string[][];
+    name?: string;
+    display_name?: string;
+    nip05?: string;
+    [key: string]: any;
+}
 
 export interface IObsidianFileService {
     createOrUpdateFile(path: string, content: string): Promise<TFile>;
     readFile(file: TFile): Promise<string>;
-    getFrontmatter(content: string): any;
-    getFrontmatterFromCache(file: TFile): any;
+    getFrontmatter(content: string): any;  // Keep original signature
+    getFrontmatterFromCache(file: TFile): any;  // Keep for compatibility
     createFrontmatter(data: any): string;
     getProfileFrontmatter(pubkey: string): any;
 }
 
 export class ObsidianFileService implements IObsidianFileService {
-    constructor(private app: App) {}
+    private metadataCache: Map<string, CachedMetadata> = new Map();
+
+    constructor(private app: App) {
+        // Listen for metadata changes
+        this.app.metadataCache.on('changed', (file: TFile, _data: string, cache: CachedMetadata) => {
+            this.metadataCache.set(file.path, cache);
+        });
+    }
 
     async createOrUpdateFile(path: string, content: string): Promise<TFile> {
         const file = this.app.vault.getAbstractFileByPath(path);
@@ -26,55 +46,111 @@ export class ObsidianFileService implements IObsidianFileService {
         return await this.app.vault.read(file);
     }
 
+    // Parse frontmatter from raw content string
     getFrontmatter(content: string): any {
         const match = content.match(/^---\n([\s\S]*?)\n---/);
-        if (match) {
-            try {
-                const cache = this.app.metadataCache.getCache(match[1]);
-                return cache?.frontmatter || null;
-            } catch (error) {
-                console.error('Failed to parse frontmatter:', error);
-                return null;
+        if (!match) return null;
+
+        try {
+            const lines = match[1].split('\n');
+            const result: Record<string, any> = {};
+
+            for (const line of lines) {
+                const [key, ...valueParts] = line.split(':').map(part => part.trim());
+                if (!key || !valueParts.length) continue;
+
+                const rawValue = valueParts.join(':').trim();
+                let parsedValue: any;
+                
+                // Handle arrays
+                if (rawValue.startsWith('[') && rawValue.endsWith(']')) {
+                    parsedValue = rawValue.slice(1, -1).split(',').map(v => v.trim());
+                }
+                // Handle quoted strings
+                else if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+                    parsedValue = rawValue.slice(1, -1);
+                }
+                // Handle numbers
+                else if (!isNaN(Number(rawValue))) {
+                    parsedValue = Number(rawValue);
+                }
+                // Handle booleans
+                else if (rawValue === 'true') {
+                    parsedValue = true;
+                }
+                else if (rawValue === 'false') {
+                    parsedValue = false;
+                }
+                // Default to string
+                else {
+                    parsedValue = rawValue;
+                }
+
+                result[key] = parsedValue;
             }
+
+            return result;
+        } catch (error) {
+            console.error('Failed to parse frontmatter:', error);
+            return null;
         }
-        return null;
     }
 
+    // Get frontmatter from Obsidian's cache
     getFrontmatterFromCache(file: TFile): any {
-        const cache = this.app.metadataCache.getCache(file.path);
+        const cache = this.app.metadataCache.getFileCache(file);
         return cache?.frontmatter || null;
     }
 
-    createFrontmatter(data: any): string {
-        // Convert arrays to YAML-style arrays
-        const yamlData = Object.entries(data).reduce((acc, [key, value]) => {
-            if (Array.isArray(value)) {
-                acc[key] = value.map(item => 
-                    typeof item === 'string' ? `"${item}"` : item
-                );
-            } else if (typeof value === 'string') {
-                acc[key] = `"${value}"`;
-            } else {
-                acc[key] = value;
-            }
-            return acc;
-        }, {} as Record<string, any>);
-
-        // Convert to YAML format
-        const yaml = Object.entries(yamlData)
-            .map(([key, value]) => {
-                if (Array.isArray(value)) {
-                    return `${key}:\n${value.map(v => `  - ${v}`).join('\n')}`;
+    // Internal method using new approach
+    private async getFrontmatterInternal(file: TFile): Promise<FrontmatterData | null> {
+        try {
+            // Try cache first
+            let cache = this.metadataCache.get(file.path);
+            if (!cache) {
+                // Get from Obsidian's cache if not in our cache
+                cache = this.app.metadataCache.getFileCache(file);
+                if (cache) {
+                    this.metadataCache.set(file.path, cache);
                 }
-                return `${key}: ${value}`;
-            })
-            .join('\n');
+            }
+            return cache?.frontmatter || null;
+        } catch (error) {
+            console.error(`Failed to get frontmatter for ${file.path}:`, error);
+            return null;
+        }
+    }
 
-        return [
-            '---',
-            yaml,
-            '---'
-        ].join('\n');
+    createFrontmatter(data: any): string {
+        try {
+            // Handle arrays and strings with proper YAML escaping
+            const formatValue = (value: any): string => {
+                if (Array.isArray(value)) {
+                    if (value.length === 0) return '[]';
+                    return '\n' + value.map(v => `  - ${formatValue(v)}`).join('\n');
+                }
+                if (typeof value === 'string') {
+                    // Escape special characters and quotes
+                    if (value.includes('\n') || value.includes('"')) {
+                        return `|
+  ${value.replace(/\n/g, '\n  ')}`;
+                    }
+                    return `"${value.replace(/"/g, '\\"')}"`;
+                }
+                return String(value);
+            };
+
+            // Build YAML entries
+            const yaml = Object.entries(data)
+                .filter(([_, value]) => value !== undefined) // Skip undefined values
+                .map(([key, value]) => `${key}: ${formatValue(value)}`)
+                .join('\n');
+
+            return ['---', yaml, '---'].join('\n');
+        } catch (error) {
+            console.error('Failed to create frontmatter:', error);
+            throw new Error('Failed to create frontmatter');
+        }
     }
 
     getProfileFrontmatter(pubkey: string): any {
@@ -84,5 +160,10 @@ export class ObsidianFileService implements IObsidianFileService {
             return this.getFrontmatterFromCache(file);
         }
         return null;
+    }
+
+    // Clean up method to be called when plugin unloads
+    onunload() {
+        this.metadataCache.clear();
     }
 }

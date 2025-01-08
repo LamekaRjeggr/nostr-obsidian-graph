@@ -168,3 +168,54 @@ The plugin adds a context menu item to event files that allows:
 - Refetching profile data for kind 0 events
 - Refetching note data for kind 1 events
 - Refetching follow list data for kind 3 events
+
+## Version Control
+
+### Git Configuration
+The repository includes standard Git configuration for a TypeScript/Node.js project:
+
+```
+.gitignore        # Specifies which files Git should ignore
+├── Dependencies  # node_modules/, package-lock.json
+├── Build output # dist/, main.js, *.js.map, *.d.ts
+├── IDE files    # .idea/, .vscode/, *.swp
+├── Environment  # .env files
+├── Obsidian    # data.json, .hot-reload.json
+└── Temp files  # logs, coverage, cache
+```
+
+## Build Process
+
+The plugin uses esbuild for bundling and compilation:
+
+### Build Configuration
+```javascript
+// esbuild.config.mjs
+{
+    entryPoints: ["src/main.ts"],
+    bundle: true,
+    external: ["obsidian"],
+    format: "cjs",
+    target: "es2018",
+    sourcemap: false,  // in production
+    treeShaking: true,
+    outfile: "main.js"
+}
+```
+
+### Build Steps
+1. esbuild bundles TypeScript files directly
+2. External dependencies (obsidian) are excluded
+3. Output is a single main.js file
+4. Tree shaking removes unused code
+5. Source maps included in development mode
+
+### Development Mode
+- Watch mode rebuilds on file changes
+- Source maps enabled for debugging
+- No minification for better debugging
+
+### Production Build
+- Tree shaking enabled
+- Source maps disabled
+- Code minified and optimized
