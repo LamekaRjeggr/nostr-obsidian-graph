@@ -12,7 +12,6 @@ export interface INoteFileService {
 export class NoteFileService implements INoteFileService {
     private readonly followsNotesDir = 'nostr/follows notes';
     private readonly notesDir = 'nostr/notes';
-    private readonly profileDir = 'nostr/user profile';
 
     constructor(
         private obsidianFileService: IObsidianFileService,

@@ -153,22 +153,6 @@ export class IndexService implements IIndexService {
         return files;
     }
 
-    async findEventsByKindInDir(kind: number, directory: string): Promise<TFile[]> {
-        const paths = this.index.byKind.get(kind);
-        if (!paths) return [];
-        
-        const files: TFile[] = [];
-        for (const path of paths) {
-            if (path.startsWith(directory)) {
-                const file = this.app.vault.getAbstractFileByPath(path);
-                if (file instanceof TFile) {
-                    files.push(file);
-                }
-            }
-        }
-        return files;
-    }
-
     async getEventsFromFiles(files: TFile[]): Promise<NostrEvent[]> {
         const events: NostrEvent[] = [];
         

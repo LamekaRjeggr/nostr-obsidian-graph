@@ -36,7 +36,6 @@ export interface IIndexService {
     findEventFile(eventId: string): Promise<TFile | null>;
     findEventsByAuthor(pubkey: string): Promise<TFile[]>;
     findEventsByKind(kind: number): Promise<TFile[]>;
-    findEventsByKindInDir(kind: number, directory: string): Promise<TFile[]>;
     getEventsFromFiles(files: TFile[]): Promise<NostrEvent[]>;
 }
 
