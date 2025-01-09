@@ -1,6 +1,7 @@
 import { App, TFile, CachedMetadata, LinkCache } from 'obsidian';
-import { NostrEvent } from '../../interfaces';
+import { NostrEvent, IIndexService } from '../../interfaces';
 import { NOSTR_DIRS } from '../../constants';
+import { IProfileFileService } from './profile-file.service';
 
 export interface ILinkService {
     getReferencedProfiles(noteId: string): Promise<string[]>;
@@ -14,7 +15,9 @@ interface FileBacklinks {
 }
 
 export class LinkService implements ILinkService {
-    constructor(private app: App) {
+    constructor(
+        private app: App
+    ) {
         // Listen for metadata changes to update links
         this.app.metadataCache.on('changed', (file: TFile) => {
             this.processFileLinks(file);
@@ -79,41 +82,69 @@ export class LinkService implements ILinkService {
      */
     async updateLinks(event: NostrEvent): Promise<void> {
         if (event.kind === 1) { // Text note
-            // Extract profile mentions from tags
-            const profileRefs = event.tags
-                .filter(tag => tag[0] === 'p')
-                .map(tag => tag[1]);
+            // Extract references from tags
+            const references = {
+                profiles: event.tags.filter(tag => tag[0] === 'p').map(tag => tag[1]),
+                notes: event.tags.filter(tag => tag[0] === 'e').map(tag => tag[1]),
+                replyTo: event.tags.find(tag => tag[0] === 'e' && tag[3] === 'reply')?.slice(1, 2) || []
+            };
 
-            // Extract note references from tags
-            const noteRefs = event.tags
-                .filter(tag => tag[0] === 'e')
-                .map(tag => tag[1]);
+            // Create markdown sections
+            const sections = [];
 
-            // Create markdown content with links
-            const links = await Promise.all([
-                ...profileRefs.map(async id => {
-                    // Check if profile exists in user profiles first
-                    const userProfilePath = `${NOSTR_DIRS.USER_PROFILE}/${id}.md`;
-                    const globalProfilePath = `${NOSTR_DIRS.GLOBAL_PROFILES}/${id}.md`;
-                    
-                    if (this.app.vault.getAbstractFileByPath(userProfilePath)) {
-                        return `[[${userProfilePath}]]`;
-                    } else {
-                        return `[[${globalProfilePath}]]`;
+            // Add reply context if this is a reply
+            if (references.replyTo.length > 0) {
+                sections.push('### Reply Context', 
+                    ...references.replyTo.map(id => `↳ Reply to [[${NOSTR_DIRS.USER_NOTES}/${id}.md]]`));
+            }
+
+            // Add references section
+            if (references.profiles.length > 0 || references.notes.length > 0) {
+                sections.push('### References');
+                
+                // Add profile references
+                for (const id of references.profiles) {
+                    // Use pubkey for both link text and path
+                    const path = `${NOSTR_DIRS.GLOBAL_PROFILES}/${id}.md`;
+                    sections.push(`👤 [[${path}]]`);
+                }
+
+                // Add note references
+                for (const id of references.notes) {
+                    if (!references.replyTo.includes(id)) { // Skip if already in reply context
+                        sections.push(`📝 [[${NOSTR_DIRS.USER_NOTES}/${id}.md]]`);
                     }
-                }),
-                ...noteRefs.map(id => `[[${NOSTR_DIRS.USER_NOTES}/${id}.md]]`)
-            ]);
+                }
+            }
 
-            if (links.length > 0) {
-                const footer = '\n\n---\n### References\n' + links.join('\n');
-                // Append links to note content
+            // Add backlinks section using metadata cache
+            const file = this.app.vault.getAbstractFileByPath(`nostr/user notes/${event.id}.md`);
+            if (file instanceof TFile) {
+                const backlinks = (this.app.metadataCache as any).getBacklinksForFile(file) as FileBacklinks;
+                if (backlinks?.data.size > 0) {
+                    sections.push('### Referenced By');
+                    for (const [path] of backlinks.data) {
+                        if (path.startsWith('nostr/user notes/')) {
+                            sections.push(`← [[${path}]]`);
+                        }
+                    }
+                }
+            }
+
+            // Update file content
+            if (sections.length > 0) {
                 const file = this.app.vault.getAbstractFileByPath(`nostr/user notes/${event.id}.md`);
                 if (file instanceof TFile) {
                     const content = await this.app.vault.read(file);
-                    await this.app.vault.modify(file, content + footer);
+                    const newContent = content.includes('### References') ?
+                        content.replace(/### References[\s\S]*$/, sections.join('\n')) :
+                        content + '\n\n---\n' + sections.join('\n');
+                    await this.app.vault.modify(file, newContent);
                 }
             }
+
+            // Update frontmatter
+            await this.updateNoteFrontmatter(event.id, references);
         }
     }
 
@@ -149,38 +180,78 @@ export class LinkService implements ILinkService {
             .map(link => (link as any).link.replace('nostr/user notes/', '').replace('.md', ''));
 
         if (profileRefs.length > 0 || noteRefs.length > 0) {
-            // Update frontmatter with references
-            const content = await this.app.vault.read(file);
-            const newContent = content.replace(/^(---)[\s\S]*?(---)/, (match, p1, p2) => {
-                const yaml = match.slice(3, -3);
-                const data = yaml ? JSON.parse(yaml) : {};
-                data.references = {
-                    profiles: profileRefs,
-                    notes: noteRefs
-                };
-                return `---\n${JSON.stringify(data, null, 2)}\n---`;
+            await this.updateNoteFrontmatter(file.basename, {
+                profiles: profileRefs,
+                notes: noteRefs,
+                replyTo: []
             });
-            await this.app.vault.modify(file, newContent);
         }
     }
 
     private async processProfileLinks(file: TFile, cache: CachedMetadata): Promise<void> {
-        // Update profile's frontmatter with notes that mention it
+        // Get backlinks from metadata cache
         const backlinks = (this.app.metadataCache as any).getBacklinksForFile(file) as FileBacklinks;
         const mentioningNotes = Array.from(backlinks.data.keys())
-            .filter(path => typeof path === 'string' && path.startsWith('nostr/user notes/'))
-            .map(path => path.replace('nostr/user notes/', '').replace('.md', ''));
+            .filter(path => typeof path === 'string' && path.startsWith('nostr/user notes/'));
 
+        // Create markdown sections
+        const sections = [];
+
+        // Add mentions section if there are backlinks
         if (mentioningNotes.length > 0) {
-            // Update frontmatter with mentions
-            const content = await this.app.vault.read(file);
-            const newContent = content.replace(/^(---)[\s\S]*?(---)/, (match, p1, p2) => {
-                const yaml = match.slice(3, -3);
-                const data = yaml ? JSON.parse(yaml) : {};
-                data.mentions = mentioningNotes;
-                return `---\n${JSON.stringify(data, null, 2)}\n---`;
-            });
-            await this.app.vault.modify(file, newContent);
+            sections.push('### Mentioned In');
+            for (const path of mentioningNotes) {
+                sections.push(`← [[${path}]]`);
+            }
         }
+
+        // Update file content
+        if (sections.length > 0) {
+            const content = await this.app.vault.read(file);
+            const newContent = content.includes('### Mentioned In') ?
+                content.replace(/### Mentioned In[\s\S]*$/, sections.join('\n')) :
+                content + '\n\n---\n' + sections.join('\n');
+            await this.app.vault.modify(file, newContent);
+
+            // Update frontmatter
+            const noteIds = mentioningNotes.map(path => 
+                path.replace('nostr/user notes/', '').replace('.md', '')
+            );
+            await this.updateProfileFrontmatter(file.basename, { mentions: noteIds });
+        }
+    }
+
+    /**
+     * Update frontmatter for note files
+     */
+    private async updateNoteFrontmatter(noteId: string, references: { profiles: string[], notes: string[], replyTo: string[] }): Promise<void> {
+        const file = this.app.vault.getAbstractFileByPath(`nostr/user notes/${noteId}.md`);
+        if (!(file instanceof TFile)) return;
+
+        const content = await this.app.vault.read(file);
+        const newContent = content.replace(/^(---)[\s\S]*?(---)/, (match, p1, p2) => {
+            const yaml = match.slice(3, -3);
+            const data = yaml ? JSON.parse(yaml) : {};
+            data.references = references;
+            return `---\n${JSON.stringify(data, null, 2)}\n---`;
+        });
+        await this.app.vault.modify(file, newContent);
+    }
+
+    /**
+     * Update frontmatter for profile files
+     */
+    private async updateProfileFrontmatter(profileId: string, data: { mentions: string[] }): Promise<void> {
+        const file = this.app.vault.getAbstractFileByPath(`${NOSTR_DIRS.USER_PROFILE}/${profileId}.md`);
+        if (!(file instanceof TFile)) return;
+
+        const content = await this.app.vault.read(file);
+        const newContent = content.replace(/^(---)[\s\S]*?(---)/, (match, p1, p2) => {
+            const yaml = match.slice(3, -3);
+            const frontmatter = yaml ? JSON.parse(yaml) : {};
+            frontmatter.mentions = data.mentions;
+            return `---\n${JSON.stringify(frontmatter, null, 2)}\n---`;
+        });
+        await this.app.vault.modify(file, newContent);
     }
 }

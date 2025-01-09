@@ -5,7 +5,8 @@ import {
     IObsidianFileService,
     IProfileFileService,
     INoteFileService,
-    IFollowFileService
+    IFollowFileService,
+    ILinkService
 } from '../../interfaces';
 import { NostrEvent } from '../../interfaces';
 
@@ -24,7 +25,8 @@ export class VaultService implements IVaultService {
         private obsidianFileService: IObsidianFileService,
         private profileFileService: IProfileFileService,
         private noteFileService: INoteFileService,
-        private followFileService: IFollowFileService
+        private followFileService: IFollowFileService,
+        private linkService: ILinkService
     ) {}
 
     async saveEvent(event: NostrEvent, isFollowedProfile: boolean = false, isUserNote: boolean = false): Promise<void> {

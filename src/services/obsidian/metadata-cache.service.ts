@@ -1,5 +1,5 @@
 import { App, TFile, CachedMetadata } from 'obsidian';
-import { IIndexService, NostrEvent } from '../../interfaces';
+import { IIndexService, NostrEvent, RelationshipCache } from '../../interfaces';
 
 /**
  * Service that uses Obsidian's MetadataCache for efficient file operations
@@ -7,6 +7,11 @@ import { IIndexService, NostrEvent } from '../../interfaces';
 export class MetadataCacheService implements IIndexService {
     private fileCache: Map<string, TFile> = new Map();
     private metadataCache: Map<string, CachedMetadata> = new Map();
+    private relationships: RelationshipCache = {
+        references: new Map(),
+        backlinks: new Map(),
+        pending: new Map()
+    };
 
     constructor(private app: App) {
         // Subscribe to metadata cache changes
@@ -26,7 +31,129 @@ export class MetadataCacheService implements IIndexService {
             if (cache?.frontmatter?.event) {
                 this.fileCache.set(file.path, file);
                 this.metadataCache.set(file.path, cache);
+                
+                // Process references from frontmatter
+                const eventId = cache.frontmatter.event.id;
+                const refs = cache.frontmatter.references || {};
+                
+                // Clear existing references for this file
+                this.clearReferences(eventId);
+                
+                // Add new references
+                if (refs.notes) {
+                    for (const noteId of refs.notes) {
+                        this.addReference(eventId, noteId);
+                    }
+                }
+                if (refs.profiles) {
+                    for (const profileId of refs.profiles) {
+                        this.addReference(eventId, profileId);
+                    }
+                }
             }
+        }
+    }
+
+    private clearReferences(eventId: string): void {
+        // Clear forward references
+        const oldRefs = this.relationships.references.get(eventId) || new Set();
+        for (const ref of oldRefs) {
+            this.relationships.backlinks.get(ref)?.delete(eventId);
+        }
+        this.relationships.references.delete(eventId);
+        
+        // Clear backlinks
+        this.relationships.backlinks.delete(eventId);
+        
+        // Clear from pending if it exists
+        this.relationships.pending.delete(eventId);
+    }
+
+    /**
+     * Add a reference from one event to another
+     */
+    async addReference(fromId: string, toId: string): Promise<void> {
+        // Add forward reference
+        if (!this.relationships.references.has(fromId)) {
+            this.relationships.references.set(fromId, new Set());
+        }
+        this.relationships.references.get(fromId)?.add(toId);
+
+        // If target exists, add backlink
+        const targetFile = await this.findEventFile(toId);
+        if (targetFile) {
+            if (!this.relationships.backlinks.has(toId)) {
+                this.relationships.backlinks.set(toId, new Set());
+            }
+            this.relationships.backlinks.get(toId)?.add(fromId);
+        } else {
+            // Target doesn't exist yet, add to pending
+            if (!this.relationships.pending.has(toId)) {
+                this.relationships.pending.set(toId, new Set());
+            }
+            this.relationships.pending.get(toId)?.add(fromId);
+        }
+    }
+
+    /**
+     * Remove a reference between events
+     */
+    async removeReference(fromId: string, toId: string): Promise<void> {
+        // Remove forward reference
+        this.relationships.references.get(fromId)?.delete(toId);
+        if (this.relationships.references.get(fromId)?.size === 0) {
+            this.relationships.references.delete(fromId);
+        }
+
+        // Remove backlink
+        this.relationships.backlinks.get(toId)?.delete(fromId);
+        if (this.relationships.backlinks.get(toId)?.size === 0) {
+            this.relationships.backlinks.delete(toId);
+        }
+
+        // Remove from pending if it exists
+        this.relationships.pending.get(toId)?.delete(fromId);
+        if (this.relationships.pending.get(toId)?.size === 0) {
+            this.relationships.pending.delete(toId);
+        }
+    }
+
+    /**
+     * Get all references from an event
+     */
+    async getReferences(eventId: string): Promise<string[]> {
+        return Array.from(this.relationships.references.get(eventId) || []);
+    }
+
+    /**
+     * Get all backlinks to an event
+     */
+    async getBacklinks(eventId: string): Promise<string[]> {
+        return Array.from(this.relationships.backlinks.get(eventId) || []);
+    }
+
+    /**
+     * Get all pending references waiting for an event
+     */
+    async getPendingReferences(eventId: string): Promise<string[]> {
+        return Array.from(this.relationships.pending.get(eventId) || []);
+    }
+
+    /**
+     * Handle when content arrives that has pending references
+     */
+    async onContentArrived(eventId: string): Promise<void> {
+        const waitingRefs = this.relationships.pending.get(eventId);
+        if (waitingRefs) {
+            // Move references from pending to backlinks
+            if (!this.relationships.backlinks.has(eventId)) {
+                this.relationships.backlinks.set(eventId, new Set());
+            }
+            for (const fromId of waitingRefs) {
+                this.relationships.backlinks.get(eventId)?.add(fromId);
+            }
+            // Clear pending
+            this.relationships.pending.delete(eventId);
         }
     }
 

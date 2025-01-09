@@ -32,11 +32,28 @@ export interface NostrEvent {
     sig: string;
 }
 
+export interface RelationshipCache {
+    // Forward references (who references whom)
+    references: Map<string, Set<string>>;  // eventId -> Set of referenced eventIds
+    // Backward references (who is referenced by whom)
+    backlinks: Map<string, Set<string>>;   // eventId -> Set of referencing eventIds
+    // Pending references (waiting for content)
+    pending: Map<string, Set<string>>;     // missing eventId -> Set of waiting eventIds
+}
+
 export interface IIndexService {
     findEventFile(eventId: string): Promise<TFile | null>;
     findEventsByAuthor(pubkey: string): Promise<TFile[]>;
     findEventsByKind(kind: number): Promise<TFile[]>;
     getEventsFromFiles(files: TFile[]): Promise<NostrEvent[]>;
+    
+    // Relationship methods
+    addReference(fromId: string, toId: string): Promise<void>;
+    removeReference(fromId: string, toId: string): Promise<void>;
+    getReferences(eventId: string): Promise<string[]>;
+    getBacklinks(eventId: string): Promise<string[]>;
+    getPendingReferences(eventId: string): Promise<string[]>;
+    onContentArrived(eventId: string): Promise<void>;
 }
 
 // Core Interfaces
@@ -120,4 +137,10 @@ export interface ILinkService {
     getReferencedNotes(noteId: string): Promise<string[]>;
     getProfileMentions(profileId: string): Promise<string[]>;
     updateLinks(event: NostrEvent): Promise<void>;
+}
+
+export interface ProfileReference {
+    pubkey: string;
+    displayName?: string;
+    noteIds: string[];  // Notes referencing this profile
 }

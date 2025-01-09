@@ -5,6 +5,7 @@ import { SearchModal } from './modals/search-modal';
 import { RelayService } from './services/core/relay.service';
 import { EventService } from './services/core/event.service';
 import { KeyService } from './services/core/key.service';
+import { IndexService } from './services/core/index.service';
 import { MetadataCacheService } from './services/obsidian/metadata-cache.service';
 import { LinkService } from './services/obsidian/link.service';
 import { ProfileService } from './services/nostr/profile.service';
@@ -51,10 +52,29 @@ export default class NostrPlugin extends Plugin {
             this.relayService = new RelayService();
             this.eventService = new EventService(this.relayService);
             this.keyService = new KeyService();
-            this.indexService = new MetadataCacheService(this.app);
+            
+            // Initialize metadata and index services
+            const metadataCache = new MetadataCacheService(this.app);
+            this.indexService = new IndexService(this.app, this.obsidianFileService, metadataCache);
+            
+            // Initialize file services first
+            this.profileFileService = new ProfileFileService(
+                this.obsidianFileService,
+                this.indexService
+            );
+            this.noteFileService = new NoteFileService(
+                this.obsidianFileService,
+                this.indexService
+            );
+            this.followFileService = new FollowFileService(
+                this.obsidianFileService,
+                this.indexService
+            );
+
+            // Initialize link service
             this.linkService = new LinkService(this.app);
             
-            // Initialize Nostr services first
+            // Initialize Nostr services
             this.profileService = new ProfileService(
                 this.relayService,
                 this.eventService
@@ -70,19 +90,6 @@ export default class NostrPlugin extends Plugin {
                 this.eventService
             );
 
-            // Initialize file services
-            this.profileFileService = new ProfileFileService(
-                this.obsidianFileService,
-                this.indexService
-            );
-            this.noteFileService = new NoteFileService(
-                this.obsidianFileService,
-                this.indexService
-            );
-            this.followFileService = new FollowFileService(
-                this.obsidianFileService,
-                this.indexService
-            );
             
             // Initialize vault service with all file services
             this.vaultService = new VaultService(
@@ -91,7 +98,8 @@ export default class NostrPlugin extends Plugin {
                 this.obsidianFileService,
                 this.profileFileService,
                 this.noteFileService,
-                this.followFileService
+                this.followFileService,
+                this.linkService
             );
 
             // Store relay URLs (connection will happen on first fetch)

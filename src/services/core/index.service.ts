@@ -19,7 +19,8 @@ export class IndexService implements IIndexService {
 
     constructor(
         private app: App,
-        private obsidianFileService: ObsidianFileService
+        private obsidianFileService: ObsidianFileService,
+        private metadataCache: IIndexService
     ) {
         // Listen for file changes
         this.app.vault.on('create', this.onFileCreated.bind(this));
@@ -166,5 +167,30 @@ export class IndexService implements IIndexService {
         }
         
         return events;
+    }
+
+    // Delegate relationship methods to MetadataCacheService
+    async addReference(fromId: string, toId: string): Promise<void> {
+        return this.metadataCache.addReference(fromId, toId);
+    }
+
+    async removeReference(fromId: string, toId: string): Promise<void> {
+        return this.metadataCache.removeReference(fromId, toId);
+    }
+
+    async getReferences(eventId: string): Promise<string[]> {
+        return this.metadataCache.getReferences(eventId);
+    }
+
+    async getBacklinks(eventId: string): Promise<string[]> {
+        return this.metadataCache.getBacklinks(eventId);
+    }
+
+    async getPendingReferences(eventId: string): Promise<string[]> {
+        return this.metadataCache.getPendingReferences(eventId);
+    }
+
+    async onContentArrived(eventId: string): Promise<void> {
+        return this.metadataCache.onContentArrived(eventId);
     }
 }
