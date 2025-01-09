@@ -104,9 +104,9 @@ export class LinkService implements ILinkService {
                 
                 // Add profile references
                 for (const id of references.profiles) {
-                    // Use pubkey for both link text and path
-                    const path = `${NOSTR_DIRS.GLOBAL_PROFILES}/${id}.md`;
-                    sections.push(`👤 [[${path}]]`);
+                    // Show pubkey in link text and use it in path
+                    const path = `${NOSTR_DIRS.FOLLOWED_PROFILES}/${id}.md`;
+                    sections.push(`👤 [${id}][[${path}]]`);
                 }
 
                 // Add note references

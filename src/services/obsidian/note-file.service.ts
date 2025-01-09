@@ -1,4 +1,5 @@
 import { NostrEvent, IIndexService } from '../../interfaces';
+import { NOSTR_DIRS } from '../../constants';
 import { IObsidianFileService } from './obsidian-file.service';
 import { FilenameService } from '../core/filename.service';
 import { FrontmatterService } from '../core/frontmatter.service';
@@ -47,10 +48,8 @@ export class NoteFileService implements INoteFileService {
             // Get profile info for linking
             const profileFrontmatter = this.obsidianFileService.getProfileFrontmatter(event.pubkey);
             
-            // Use standard Markdown link with pubkey as text and display name as target
-            // This maintains security (pubkey visible) while using display name for navigation
-            const displayName = profileFrontmatter?.display_name || event.pubkey;
-            const authorLink = `[${event.pubkey}](${displayName}.md)`;
+            // Use simple profile link format
+            const authorLink = `[${event.pubkey}](${event.pubkey}.md)`;
             
             // Create note content with secure Markdown link
             const contentParts = [
