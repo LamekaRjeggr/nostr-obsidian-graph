@@ -1,129 +1,130 @@
 # Nostr Graph Plugin for Obsidian
 
-A powerful Obsidian plugin that connects your vault to the Nostr network, enabling you to store and visualize your Nostr content (notes, profiles, and conversations) as markdown files while maintaining bidirectional synchronization with the network.
+Turn your Obsidian vault into a personal Nostr reader! This plugin lets you save your Nostr content (posts, profiles, and conversations) as regular markdown files that you can read, search, and organize in Obsidian.
 
-## Features
+## What is Nostr?
 
-### Core Functionality
-- Fetch and store Nostr events as markdown files with complete metadata
-- Real-time synchronization with Nostr relays
-- Automatic directory organization for different event types
-- Bidirectional updates between Obsidian and Nostr
+Nostr is a simple, open protocol for global social networks. Think of it like email, but for social media - anyone can participate, and no single company controls it. When you use Nostr:
+- Your posts can reach anyone on the network
+- You own your data and connections
+- You can switch between different apps (like this plugin!)
+- No central authority can lock you out
 
-### Content Management
-- Store text notes (kind 1) with thread context
-- Maintain user profiles (kind 0) with metadata
-- Track contact lists (kind 3) and relationships
-- Preserve complete event data in frontmatter
-- Link profiles and notes with Obsidian references
+## What This Plugin Does
 
-### Integration Features
-- Obsidian graph visualization support
-- Command palette integration
-- Context menu for quick actions
-- Real-time relay subscriptions
-- Auto-sync capabilities
+### For Your Content
+- Saves your Nostr posts as markdown files
+- Organizes everything neatly in folders
+- Keeps your content in sync with Nostr
+- Lets you read and search offline
 
-## Directory Structure
+### For Following Others
+- Saves posts from people you follow
+- Keeps track of your follow list
+- Downloads profile information
+- Shows connections in Obsidian's graph view
+
+### Smart Features
+- Updates automatically in the background
+- Shows threads and conversations
+- Works with multiple Nostr relays
+- Keeps all the technical details in the background
+
+## How Your Files Are Organized
 
 ```
 nostr/
-├── user notes/         # Text note events (kind 1)
-├── user profile/       # Profile metadata events (kind 0)
-├── user follows/       # Contact list events (kind 3)
-└── followed profiles/  # Profile metadata of followed users (kind 0)
+├── user notes/         # Your posts
+├── user profile/       # Your profile info
+├── user follows/       # People you follow
+└── followed profiles/  # Their profile info
 ```
 
-## Installation
+## Getting Started
 
-Coming soon to Obsidian Community Plugins!
+1. Download the latest release
+2. Put it in your vault's plugins folder: `.obsidian/plugins/nostr-obsidian-graph/`
+3. Restart Obsidian
+4. Turn on the plugin in Settings → Community plugins
+5. Set up your account:
+   - Add your public key (starts with npub)
+   - Add some relays (they start with wss://)
+   - Choose your sync settings
+   - Pick how often to update
 
-For now, you can install manually:
-1. Download the latest release from GitHub
-2. Extract the files to your vault's `.obsidian/plugins/nostr-obsidian-graph/` directory
-3. Reload Obsidian
-4. Enable the plugin in Settings → Community plugins
-5. Configure the plugin:
-   - Enter your public key (npub format)
-   - Add/enable relay connections
-   - Configure sync preferences
-   - Set update intervals
+## What You Can Do
 
-## Commands
+### Profile Stuff
+- Get your profile info
+- Update your follow list
+- Download profiles you follow
 
-### Profile Management
-- `Fetch Profile`: Get user metadata (kind 0)
-- `Fetch Follow List`: Get user's contact list (kind 3)
-- `Fetch Follow Profiles`: Get profiles of followed users
+### Post Stuff
+- Download your posts
+- Search through posts
+- Keep everything up to date
 
-### Note Management
-- `Fetch Notes`: Get user's recent notes
-- `Search Nostr Notes`: Search through notes
-- `Sync All`: Update all stored content
-
-### Context Menu
-Right-click on any Nostr file to:
-- Refresh profile data
-- Update note content
-- Fetch new replies
+### Quick Actions
+Right-click any Nostr file to:
+- Refresh the content
+- Get new replies
+- Update profiles
 - Update follow lists
 
 ## Current Limitations
 
-- Only supports npub format in settings
-- Basic thread reconstruction
-- No automatic relay discovery
-- Profile updates may have slight delay
-- No compression for stored data
-- Limited error recovery in templates
+- Only works with npub keys (not hex)
+- Basic thread display for now
+- Manual relay setup needed
+- Updates might take a moment
+- Files aren't compressed
+- Some errors need manual fixes
 
-## Workarounds
+## Quick Fixes
 
-### Profile Updates
-If profiles aren't updating:
-1. Disable and re-enable the relay
-2. Use "Sync Profile" command
-3. Check relay connection status
+### If Profiles Won't Update
+1. Turn the relay off and on
+2. Try the "Sync Profile" command
+3. Check if relay is connected
 
-### Relay Connections
-If relays aren't connecting:
-1. Ensure URLs start with "wss://"
-2. Remove and re-add the relay
-3. Check settings status
+### If Relays Won't Connect
+1. Make sure they start with "wss://"
+2. Try removing and adding again
+3. Look in the settings
 
-### Note Navigation
-For better thread navigation:
-1. Use Obsidian graph view
-2. Follow reference links
-3. Use Obsidian search
-4. Check note frontmatter
+### Finding Posts
+Try these methods:
+1. Use Obsidian's graph view
+2. Click the links in posts
+3. Search in Obsidian
+4. Look at the note details
 
 ## Coming Soon
 
-### Short Term
-- Relay health checks
-- Basic error recovery
-- Profile cleanup options
-- Thread visualization
-- Thread navigation UI
+### Soon
+- Better relay connections
+- Faster updates
+- Profile cleanup tools
+- Thread viewing improvements
+- Better navigation
 
-### Medium Term
-- Template validation
-- Relay performance tracking
-- Conflict resolution
+### Later
+- Template customization
+- Relay performance tools
+- Conflict handling
 
-### Long Term
-- Custom template creation
-- Advanced error recovery
-- Full pipeline monitoring
+### Future
+- Custom templates
+- Better error handling
+- Full system monitoring
 
-## Contributing
+## Want to Help?
 
-See [STRUCTURE.md](STRUCTURE.md) for architecture details and contribution guidelines.
+Check out [STRUCTURE.md](STRUCTURE.md) for technical details and how to contribute.
 
-## Documentation
+## More Info
 
-### Core References
-- [STRUCTURE.md](STRUCTURE.md) - Architecture and implementation details
-- [OBSIDIAN_REFERENCE.md](OBSIDIAN_REFERENCE.md) - Obsidian API usage
-- [KNOWN_ISSUES.md](KNOWN_ISSUES.md) - Current limitations and workarounds
+### Documentation
+- [STRUCTURE.md](STRUCTURE.md) - How everything works
+- [OBSIDIAN_REFERENCE.md](OBSIDIAN_REFERENCE.md) - Obsidian details
+- [KNOWN_ISSUES.md](KNOWN_ISSUES.md) - Problems and solutions

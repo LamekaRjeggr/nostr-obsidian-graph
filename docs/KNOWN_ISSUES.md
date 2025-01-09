@@ -79,3 +79,37 @@ If thread navigation is difficult:
 - Custom template creation
 - Advanced error recovery
 - Full pipeline monitoring
+
+## Code Organization
+
+### Service Refactoring Opportunities
+
+#### Index Services
+- IndexService and MetadataCacheService have overlapping responsibilities
+- Could be consolidated or better separated
+- Need clearer separation of concerns between caching and indexing
+
+#### Vault Service
+- Currently handles multiple event types and directory management
+- Could be split into more focused services:
+  - Directory management service
+  - Event type specific services
+  - File system operations service
+
+#### Note File Service
+- Combines file operations with follow status checking
+- Potential improvements:
+  - Separate follow status checking into dedicated service
+  - Extract file path generation logic
+  - Split content generation from file operations
+
+#### Main Service Organization
+- Service initialization could be more modular
+- Command handling could be separated
+- Event handling could be better organized
+
+### Future Improvements
+- Create dedicated directory management service
+- Split event handling by type
+- Implement better service dependency management
+- Add service lifecycle management

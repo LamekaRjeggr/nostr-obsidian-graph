@@ -249,3 +249,50 @@ The plugin uses esbuild for bundling and compilation:
 - Tree shaking enabled
 - Source maps disabled
 - Code minified and optimized
+
+## Potential Refactoring
+
+### Service Organization
+
+The current service architecture could be improved through better separation of concerns:
+
+#### Core Services
+- IndexService and MetadataCacheService could be reorganized:
+  ```
+  services/core/
+  ├── index/
+  │   ├── index.service.ts       # Pure indexing logic
+  │   ├── cache.service.ts       # Cache management
+  │   └── search.service.ts      # Search operations
+  ```
+
+#### File System Services
+- VaultService responsibilities could be split:
+  ```
+  services/obsidian/
+  ├── fs/
+  │   ├── directory.service.ts   # Directory management
+  │   ├── file.service.ts        # File operations
+  │   └── vault.service.ts       # High-level coordination
+  ```
+
+#### Event Services
+- Event handling could be more modular:
+  ```
+  services/nostr/events/
+  ├── handlers/
+  │   ├── note.handler.ts        # Note event handling
+  │   ├── profile.handler.ts     # Profile event handling
+  │   └── follow.handler.ts      # Follow event handling
+  ├── storage/
+  │   └── event.store.ts         # Event persistence
+  └── event.service.ts           # Event coordination
+  ```
+
+### Benefits
+- Clearer responsibility boundaries
+- Easier testing and maintenance
+- Better dependency management
+- More flexible for future changes
+
+This reorganization would maintain the current functionality while making the codebase more maintainable and extensible.
