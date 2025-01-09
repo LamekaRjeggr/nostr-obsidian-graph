@@ -25,9 +25,8 @@ export class ProfileFileService implements IProfileFileService {
 
         try {
             const profileData = JSON.parse(event.content);
-            const displayName = profileData.display_name || profileData.name || event.pubkey;
             const targetDir = directory || this.defaultProfileDir;
-            const filepath = `${targetDir}/${displayName}.md`;
+            const filepath = `${targetDir}/${event.pubkey}.md`;
 
             // Create frontmatter with metadata and ensure pubkey is preserved
             const frontmatter = {
@@ -35,15 +34,14 @@ export class ProfileFileService implements IProfileFileService {
                 name: profileData.name || '',
                 display_name: profileData.display_name || '',
                 nip05: profileData.nip05 || '',
-                pubkey: event.pubkey,  // Store pubkey for verification
-                aliases: [displayName] // Use display name for graph view
+                pubkey: event.pubkey  // Store pubkey for verification
             };
 
             // Create markdown content with collapsible JSON section
             const content = [
                 this.obsidianFileService.createFrontmatter(frontmatter),
                 '',
-                `# ${displayName}`,
+                `# ${profileData.display_name || profileData.name || event.pubkey}`,
                 '',
                 profileData.about || '',
                 '',
