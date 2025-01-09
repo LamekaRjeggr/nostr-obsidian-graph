@@ -3,12 +3,15 @@
 ## Current Limitations
 
 ### Profile Management
-- Only supports npub format in settings (hex format will be converted)
 - Profile updates might have slight delay due to relay latency
 - Profile images are stored as URLs, not downloaded locally
 - Profile links use secure format: [pubkey](display_name.md)
   - Ensures cryptographic verification
   - Maintains readable graph display
+- Supports both hex and npub formats for:
+  - Profile fetching
+  - Reply searching
+  - User identification
 
 ### Pipeline System
 - Templates cannot be modified at runtime
@@ -52,13 +55,24 @@ If a template operation fails:
 2. Retry the operation manually
 3. Check console for detailed error messages
 
-### Note Navigation
-If thread navigation is difficult:
-1. Use Obsidian graph view to visualize connections
+### Finding Content
+The search modal provides several ways to find content:
+1. General Search
+   - Use keywords to find specific posts
+   - Filter by time range
+2. Reply Search
+   - Find replies to any user (hex or npub)
+   - Find replies to specific notes
+3. Profile Fetch
+   - Get profile info directly
+   - Works with both hex and npub
+
+Additional navigation methods:
+1. Use Obsidian graph view
    - Profile nodes show display names
    - Links maintain cryptographic security
-2. Follow reference links at bottom of notes
-3. Use Obsidian search to find related notes
+2. Follow reference links in notes
+3. Browse by profile or thread
 4. Check note frontmatter for raw nostr_tags
 
 ## Future Solutions
@@ -76,7 +90,7 @@ If thread navigation is difficult:
 - Add conflict resolution
 
 ### Long Term
-- Custom template creation
+- Custom templates
 - Advanced error recovery
 - Full pipeline monitoring
 

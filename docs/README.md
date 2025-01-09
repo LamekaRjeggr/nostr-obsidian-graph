@@ -59,9 +59,13 @@ nostr/
 - Update your follow list
 - Download profiles you follow
 
-### Post Stuff
+### Search & Discovery
+- General keyword search across posts
+- Find replies to any user (hex or npub)
+- Find replies to specific notes
+- Fetch profiles directly by key
+- Filter by time ranges
 - Download your posts
-- Search through posts
 - Keep everything up to date
 
 ### Quick Actions
@@ -73,7 +77,6 @@ Right-click any Nostr file to:
 
 ## Current Limitations
 
-- Only works with npub keys (not hex)
 - Basic thread display for now
 - Manual relay setup needed
 - Updates might take a moment
@@ -92,11 +95,17 @@ Right-click any Nostr file to:
 2. Try removing and adding again
 3. Look in the settings
 
-### Finding Posts
-Try these methods:
+### Finding Content
+The Search modal (Command palette -> "Search Nostr Notes") offers several ways to find content:
+1. General Search - Find posts by keyword
+2. Find Replies to User - See who replied to any user
+3. Find Replies to Note - See all replies to a note
+4. Fetch Profile - Get profile info for any pubkey
+
+You can also:
 1. Use Obsidian's graph view
 2. Click the links in posts
-3. Search in Obsidian
+3. Browse by profile or thread
 4. Look at the note details
 
 ## Coming Soon

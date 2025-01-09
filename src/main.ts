@@ -111,6 +111,7 @@ export default class NostrPlugin extends Plugin {
                     new SearchModal(
                         this.app,
                         this.vaultService,
+                        this.profileService,
                         (options) => this.noteService.searchWithOptions(options)
                     ).open();
                 }

@@ -42,11 +42,15 @@ nostr/
 - **PoolService**: No dependencies
 - **RelayService**: Depends on PoolService
 - **EventService**: Depends on PoolService
-- **KeyService**: No dependencies
+- **KeyService**: No dependencies, handles hex/bech32 conversion
 - **FilenameService**: No dependencies
 - **MarkdownService**: No dependencies
 - **TimestampService**: No dependencies
 - **FrontmatterService**: No dependencies, provides common frontmatter operations
+- **SearchService**: Depends on RelayService, EventService
+  - Supports keyword search
+  - Handles reply filtering (p/e tags)
+  - Time range filtering
 
 ### Obsidian Services
 - **VaultService**: Depends on IndexService
@@ -78,6 +82,36 @@ nostr/
 - Connections are only established when needed
 - First fetch operation triggers connection
 - Improves plugin load time
+
+## Search System
+
+The search system is built around composable filters that can be combined:
+
+### Search Types
+1. General Search
+   - Uses keyword filter
+   - Optional time range filter
+2. Reply Search
+   - Uses p-tag filter for user replies
+   - Uses e-tag filter for note replies
+   - Supports both hex and bech32 formats
+3. Profile Fetch
+   - Direct profile retrieval
+   - Supports both hex and bech32 formats
+
+### Filter Implementation
+```typescript
+interface ISearchFilter {
+    apply(options: SearchOptions): Filter;
+    combine(filter: ISearchFilter): ISearchFilter;
+}
+```
+
+### Search Process
+1. User selects search type
+2. Appropriate filters are built
+3. Filters are combined into final query
+4. Results are fetched and saved to vault
 
 ## Event Storage
 
