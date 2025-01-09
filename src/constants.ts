@@ -1,3 +1,11 @@
+export const NOSTR_DIRS = {
+    USER_NOTES: 'nostr/user notes',
+    USER_PROFILE: 'nostr/user profile',
+    USER_FOLLOWS: 'nostr/user follows',
+    FOLLOWED_PROFILES: 'nostr/followed profiles',
+    GLOBAL_PROFILES: 'nostr/global profiles'
+} as const;
+
 export const EVENT_KINDS = [
     { value: 0, label: 'Metadata (0)', description: 'Profile metadata' },
     { value: 1, label: 'Text Note (1)', description: 'Short text note' },

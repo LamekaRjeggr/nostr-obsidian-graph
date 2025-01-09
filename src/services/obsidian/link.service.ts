@@ -1,5 +1,6 @@
 import { App, TFile, CachedMetadata, LinkCache } from 'obsidian';
 import { NostrEvent } from '../../interfaces';
+import { NOSTR_DIRS } from '../../constants';
 
 export interface ILinkService {
     getReferencedProfiles(noteId: string): Promise<string[]>;
@@ -31,15 +32,25 @@ export class LinkService implements ILinkService {
         if (!cache?.links) return [];
 
         return cache.links
-            .filter(link => (link as any).link.startsWith('nostr/user profile/'))
-            .map(link => (link as any).link.replace('nostr/user profile/', '').replace('.md', ''));
+            .filter(link => (link as any).link.startsWith(NOSTR_DIRS.USER_PROFILE) || 
+                           (link as any).link.startsWith(NOSTR_DIRS.GLOBAL_PROFILES))
+            .map(link => {
+                const path = (link as any).link;
+                return path.replace(`${NOSTR_DIRS.USER_PROFILE}/`, '')
+                          .replace(`${NOSTR_DIRS.GLOBAL_PROFILES}/`, '')
+                          .replace('.md', '');
+            });
     }
 
     /**
      * Get notes that reference a profile
      */
     async getProfileMentions(profileId: string): Promise<string[]> {
-        const profileFile = this.app.vault.getAbstractFileByPath(`nostr/user profile/${profileId}.md`);
+        // Try user profile first, then global profiles
+        let profileFile = this.app.vault.getAbstractFileByPath(`${NOSTR_DIRS.USER_PROFILE}/${profileId}.md`);
+        if (!profileFile) {
+            profileFile = this.app.vault.getAbstractFileByPath(`${NOSTR_DIRS.GLOBAL_PROFILES}/${profileId}.md`);
+        }
         if (!(profileFile instanceof TFile)) return [];
 
         const backlinks = (this.app.metadataCache as any).getBacklinksForFile(profileFile) as FileBacklinks;
@@ -79,10 +90,20 @@ export class LinkService implements ILinkService {
                 .map(tag => tag[1]);
 
             // Create markdown content with links
-            const links = [
-                ...profileRefs.map(id => `[[nostr/user profile/${id}]]`),
-                ...noteRefs.map(id => `[[nostr/user notes/${id}]]`)
-            ];
+            const links = await Promise.all([
+                ...profileRefs.map(async id => {
+                    // Check if profile exists in user profiles first
+                    const userProfilePath = `${NOSTR_DIRS.USER_PROFILE}/${id}.md`;
+                    const globalProfilePath = `${NOSTR_DIRS.GLOBAL_PROFILES}/${id}.md`;
+                    
+                    if (this.app.vault.getAbstractFileByPath(userProfilePath)) {
+                        return `[[${userProfilePath}]]`;
+                    } else {
+                        return `[[${globalProfilePath}]]`;
+                    }
+                }),
+                ...noteRefs.map(id => `[[${NOSTR_DIRS.USER_NOTES}/${id}.md]]`)
+            ]);
 
             if (links.length > 0) {
                 const footer = '\n\n---\n### References\n' + links.join('\n');
@@ -114,8 +135,14 @@ export class LinkService implements ILinkService {
     private async processNoteLinks(file: TFile, cache: CachedMetadata): Promise<void> {
         // Update note's frontmatter with referenced profiles and notes
         const profileRefs = cache.links
-            .filter(link => (link as any).link.startsWith('nostr/user profile/'))
-            .map(link => (link as any).link.replace('nostr/user profile/', '').replace('.md', ''));
+            .filter(link => (link as any).link.startsWith(NOSTR_DIRS.USER_PROFILE) || 
+                           (link as any).link.startsWith(NOSTR_DIRS.GLOBAL_PROFILES))
+            .map(link => {
+                const path = (link as any).link;
+                return path.replace(`${NOSTR_DIRS.USER_PROFILE}/`, '')
+                          .replace(`${NOSTR_DIRS.GLOBAL_PROFILES}/`, '')
+                          .replace('.md', '');
+            });
 
         const noteRefs = cache.links
             .filter(link => (link as any).link.startsWith('nostr/user notes/'))

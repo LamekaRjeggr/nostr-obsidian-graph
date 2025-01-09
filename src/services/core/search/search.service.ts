@@ -24,7 +24,7 @@ export class SearchService {
         await this.relayService.ensureConnected();
         
         const filters = this.buildFilters(options);
-        return this.executeSearch(filters);
+        return this.executeSearch(filters, options);
     }
 
     /**
@@ -53,7 +53,7 @@ export class SearchService {
      * @param filters Filters to apply
      * @returns Array of matching NostrEvent objects
      */
-    private async executeSearch(filters: ISearchFilter[]): Promise<NostrEvent[]> {
+    private async executeSearch(filters: ISearchFilter[], options: SearchOptions): Promise<NostrEvent[]> {
         return new Promise((resolve, reject) => {
             const events: NostrEvent[] = [];
             let timeout: NodeJS.Timeout;
@@ -86,7 +86,7 @@ export class SearchService {
             // Create base filter
             const baseFilter = {
                 kinds: [1],  // Default to text notes
-                limit: 50   // Default limit
+                limit: options.limit || 1000   // Use provided limit or default to 1000
             };
 
             // Apply each filter in sequence
@@ -97,8 +97,10 @@ export class SearchService {
                     ...filterResult,
                     // Preserve arrays by concatenating
                     kinds: [...new Set([...(acc.kinds || []), ...(filterResult.kinds || [])])],
-                    // Preserve the lowest limit
-                    limit: Math.min(acc.limit || 50, filterResult.limit || 50)
+                    // Preserve the lowest limit if specified
+                    limit: filterResult.limit ? 
+                        (acc.limit ? Math.min(acc.limit, filterResult.limit) : filterResult.limit) :
+                        acc.limit
                 };
             }, baseFilter);
 
@@ -119,7 +121,7 @@ export class SearchService {
      * @param limit Maximum number of results
      * @returns Search results
      */
-    async searchRecent(days: number = 7, limit: number = 50): Promise<NostrEvent[]> {
+    async searchRecent(days: number = 7, limit: number = 1000): Promise<NostrEvent[]> {
         return this.search({
             limit,
             ...TimeRangeFilter.forLastDays(days).apply({})
@@ -136,7 +138,7 @@ export class SearchService {
     async searchKeywordWithTime(
         keyword: string,
         hours: number = 24,
-        limit: number = 50
+        limit: number = 1000
     ): Promise<NostrEvent[]> {
         return this.search({
             keyword,

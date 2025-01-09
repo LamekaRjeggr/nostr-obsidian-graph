@@ -2,6 +2,7 @@ import { NostrEvent } from '../../interfaces';
 import { IIndexService } from '../../interfaces';
 import { IObsidianFileService } from './obsidian-file.service';
 import { FrontmatterService } from '../core/frontmatter.service';
+import { NOSTR_DIRS } from '../../constants';
 
 export interface IProfileFileService {
     saveProfile(event: NostrEvent, directory?: string): Promise<void>;
@@ -10,7 +11,7 @@ export interface IProfileFileService {
 }
 
 export class ProfileFileService implements IProfileFileService {
-    private readonly defaultProfileDir = 'nostr/user profile';
+    private readonly defaultProfileDir = NOSTR_DIRS.GLOBAL_PROFILES;
 
     constructor(
         private obsidianFileService: IObsidianFileService,
@@ -90,7 +91,11 @@ export class ProfileFileService implements IProfileFileService {
 
     async getProfileByDisplayName(displayName: string): Promise<NostrEvent | null> {
         try {
-            const file = this.obsidianFileService.getFileByPath(`${this.defaultProfileDir}/${displayName}.md`);
+            // Try user profile first, then global profiles
+            let file = this.obsidianFileService.getFileByPath(`${NOSTR_DIRS.USER_PROFILE}/${displayName}.md`);
+            if (!file) {
+                file = this.obsidianFileService.getFileByPath(`${NOSTR_DIRS.GLOBAL_PROFILES}/${displayName}.md`);
+            }
             if (!file) {
                 return null;
             }
