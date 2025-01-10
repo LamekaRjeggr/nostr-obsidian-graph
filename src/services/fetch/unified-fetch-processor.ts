@@ -1,7 +1,9 @@
-import { NostrEvent } from '../../types';
+import { NostrEvent, TagType } from '../../types';
+import { TagProcessor } from '../processors/tag-processor';
+import { ReferenceProcessor } from '../processors/reference-processor';
 import { RelayService } from '../core/relay-service';
 import { NostrEventBus } from '../../experimental/event-bus/event-bus';
-import { Notice } from 'obsidian';
+import { App, Notice } from 'obsidian';
 import { ValidationService } from '../validation-service';
 import { FileService } from '../core/file-service';
 import { EventKinds } from '../core/base-event-handler';
@@ -24,11 +26,18 @@ export interface FetchOptions {
 export class UnifiedFetchProcessor {
     private nodeFetchHandler: NodeFetchHandler | null = null;
 
+    private tagProcessor: TagProcessor;
+    private referenceProcessor: ReferenceProcessor;
+
     constructor(
         private relayService: RelayService,
         private eventBus: NostrEventBus,
-        private fileService: FileService
-    ) {}
+        private fileService: FileService,
+        private app: App
+    ) {
+        this.tagProcessor = new TagProcessor();
+        this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
+    }
 
     setNodeFetchHandler(handler: NodeFetchHandler) {
         this.nodeFetchHandler = handler;
@@ -68,12 +77,22 @@ export class UnifiedFetchProcessor {
 
             new Notice(`Found ${filteredEvents.length} matching events`);
 
-            // Save events unless explicitly skipped
+            // Process and save events unless explicitly skipped
             if (!options.skipSave) {
                 for (const event of filteredEvents) {
+                    // Process references
+                    const refResults = await this.referenceProcessor.process(event);
+                    
+                    // Save with reference metadata
                     await this.fileService.saveNote(event, {
-                        references: [],
-                        referencedBy: [],
+                        references: refResults.nostr.outgoing.map((id: string) => ({
+                            targetId: id,
+                            type: TagType.MENTION
+                        })),
+                        referencedBy: refResults.nostr.incoming.map((id: string) => ({
+                            targetId: id,
+                            type: TagType.MENTION
+                        }))
                     });
                 }
             }
@@ -126,10 +145,13 @@ export class UnifiedFetchProcessor {
             }
             console.log('Found note event:', nodeEvent);
 
-            // Get references from tags
-            const relatedIds = nodeEvent.tags
-                .filter(tag => tag[0] === 'e')
-                .map(tag => tag[1]);
+            // Process tags and references
+            const refResults = await this.referenceProcessor.process(nodeEvent);
+            const relatedIds = [
+                ...refResults.nostr.outgoing,
+                ...(refResults.metadata.root ? [refResults.metadata.root] : []),
+                ...(refResults.metadata.replyTo ? [refResults.metadata.replyTo] : [])
+            ];
             console.log('Found related IDs:', relatedIds);
 
             // Fetch related events
@@ -185,29 +207,12 @@ export class UnifiedFetchProcessor {
                 throw new Error('Target event not found');
             }
 
-            const context: ThreadContext = {};
-
-            // Find root and parent IDs from event tags
-            for (const tag of targetEvent.tags) {
-                if (tag[0] === 'e') {
-                    if (tag[3] === 'root') {
-                        context.root = tag[1];
-                    } else if (tag[3] === 'reply') {
-                        context.parent = tag[1];
-                    }
-                }
-            }
-
-            // If no explicit root/parent markers, use first/last e tags
-            if (!context.root && !context.parent) {
-                const eTags = targetEvent.tags.filter(t => t[0] === 'e');
-                if (eTags.length > 0) {
-                    context.root = eTags[0][1];
-                    if (eTags.length > 1) {
-                        context.parent = eTags[eTags.length - 1][1];
-                    }
-                }
-            }
+            // Process references to get thread context
+            const refResults = await this.referenceProcessor.process(targetEvent);
+            const context: ThreadContext = {
+                root: refResults.metadata.root,
+                parent: refResults.metadata.replyTo
+            };
 
             // Fetch replies
             const replies = await this.fetchWithOptions({

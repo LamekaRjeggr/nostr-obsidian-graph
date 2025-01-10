@@ -5,7 +5,7 @@ import { NoteFormatter, LinkResolver } from '../file/formatters/note-formatter';
 import { ProfileFormatter } from '../file/formatters/profile-formatter';
 import { DirectoryManager } from '../file/system/directory-manager';
 import { ContentProcessor } from '../file/utils/text-processor';
-import { TagProcessor } from '../tags/tag-processor';
+import { TagProcessor } from '../processors/tag-processor';
 import { FrontmatterUtil } from '../file/utils/frontmatter-util';
 import { TemporalUtils } from '../temporal/temporal-utils';
 import { logger } from './logger';

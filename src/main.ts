@@ -156,7 +156,8 @@ export default class NostrPlugin extends Plugin {
         this.unifiedFetchProcessor = new UnifiedFetchProcessor(
             this.relayService,
             NostrEventBus.getInstance(),
-            this.fileService
+            this.fileService,
+            this.app
         );
 
         // Initialize node fetch handler

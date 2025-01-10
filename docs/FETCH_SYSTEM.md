@@ -11,6 +11,7 @@ Core processing engine that handles:
 - Filter management and options
 - Basic event fetching
 - Foundation for other handlers
+- Optional file saving control via skipSave option
 
 ### 2. Thread Layer (ThreadFetchHandler)
 Specialized handler for conversation threads:
@@ -44,6 +45,21 @@ Context-aware processing with parallel operations:
   * Cache coordination
   * Reference store synchronization
 
+### 4. Keyword Search Layer (KeywordSearchHandler)
+Specialized handler for text-based content search:
+- NIP-50 search integration:
+  * Server-side text search via relay filters
+  * Multiple keyword support
+  * Efficient result filtering
+- Advanced filtering capabilities:
+  * Time range filtering (week/month/year/custom)
+  * Content type filtering (text/media/mentions)
+  * Social scope filtering (follows/follows-of-follows)
+- File handling:
+  * Controlled file saving with error handling
+  * Progress tracking and notifications
+  * Safe path handling via Obsidian API
+
 ## Implementation Details
 
 ### 1. Settings Management
@@ -53,6 +69,17 @@ interface FetchSettings {
     notesPerProfile: number;    // Max notes per profile (1-500)
     batchSize: number;         // Notes per request (1-500)
     includeOwnNotes: boolean;  // Include user's own notes
+}
+
+interface FetchOptions {
+    kinds: number[];          // Event kinds to fetch
+    limit: number;            // Max events to fetch
+    filter?: Function;        // Custom filter function
+    since?: number;          // Start timestamp
+    until?: number;          // End timestamp
+    author?: string;         // Author hex key
+    search?: string[];       // NIP-50 search terms
+    skipSave?: boolean;      // Skip auto-saving results
 }
 ```
 
@@ -73,12 +100,16 @@ metadata -> FetchProcessor.processFollows()
 // Note Processing (kind 1)
 metadata -> Extract IDs -> FetchProcessor
   -> Complete processing chain
+
+// Keyword Search Processing
+keywords -> NIP-50 search -> Filter chain
+  -> Handler-controlled saving -> File system
 ```
 
 ### 4. Event Processing
 ```typescript
 Event -> EventStreamHandler
-  -> Handler (Note/Profile)
+  -> Handler (Note/Profile/Search)
   -> Store Updates
   -> File System
 ```

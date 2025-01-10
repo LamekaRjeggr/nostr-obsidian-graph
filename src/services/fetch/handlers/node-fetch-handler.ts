@@ -1,8 +1,8 @@
 import { App, TFile } from 'obsidian';
-import { NostrEvent } from '../../../types';
+import { NostrEvent, TagType } from '../../../types';
 import { EventService } from '../../../services/core/event-service';
 import { BaseEventHandler, EventKinds, ProcessingPriority } from '../../../services/core/base-event-handler';
-import { TagProcessor } from '../../../services/tags/tag-processor';
+import { TagProcessor } from '../../processors/tag-processor';
 import { ReferenceStore } from '../../../services/references/reference-store';
 import { EventHandler, NodeFetchEvent } from '../../../experimental/event-bus/types';
 import { UnifiedFetchProcessor } from '../unified-fetch-processor';
@@ -26,7 +26,12 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
     async process(event: NostrEvent): Promise<void> {
         if (!this.validate(event)) return;
         
-        const references = this.tagProcessor.processEventTags(event);
+        const tagResults = this.tagProcessor.process(event);
+        const references = [
+            ...tagResults.references.map(id => ({ targetId: id, type: TagType.MENTION })),
+            ...(tagResults.root ? [{ targetId: tagResults.root, type: TagType.ROOT }] : []),
+            ...(tagResults.replyTo ? [{ targetId: tagResults.replyTo, type: TagType.REPLY }] : [])
+        ];
         this.referenceStore.addReferences(event.id, references);
         
         const outgoingRefs = this.referenceStore.getOutgoingReferences(event.id);
@@ -47,8 +52,11 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
             return;
         }
 
-        const metadata = await this.app.metadataCache.getFileCache(file);
+        const metadata = await this.app.metadataCache.getFileCache(file) || {};
         const isProfile = this.isProfileNote(metadata);
+
+        const defaultBatchSize = 50;
+        const defaultThreadLimit = 50;
 
         if (isProfile) {
             const pubkey = this.extractPubkey(metadata);
@@ -56,7 +64,7 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
                 console.log(`Processing as profile with pubkey: ${pubkey}`);
                 await this.unifiedFetchProcessor.fetchWithOptions({
                     kinds: [EventKinds.NOTE],
-                    limit: this.fetchSettings.hexFetch.batchSize,
+                    limit: this.fetchSettings.hexFetch?.batchSize || defaultBatchSize,
                     author: pubkey
                 });
             }
@@ -66,15 +74,15 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
                 console.log(`Processing as note with event ID: ${eventId}`);
                 await this.unifiedFetchProcessor.fetchThreadContext(
                     eventId,
-                    this.fetchSettings.threadSettings.limit
+                    this.fetchSettings.threadSettings?.limit || defaultThreadLimit
                 );
 
-                if (this.fetchSettings.threadSettings.includeContext) {
+                if (this.fetchSettings.threadSettings?.includeContext) {
                     const profileRefs = this.extractProfileRefs(metadata);
                     for (const pubkey of profileRefs) {
                         await this.unifiedFetchProcessor.fetchWithOptions({
                             kinds: [EventKinds.NOTE],
-                            limit: this.fetchSettings.hexFetch.batchSize,
+                            limit: this.fetchSettings.hexFetch?.batchSize || defaultBatchSize,
                             author: pubkey
                         });
                     }
@@ -83,26 +91,26 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
         }
     }
 
-    private isProfileNote(metadata: any): boolean {
-        return metadata?.frontmatter?.type === 'profile' || 
-               metadata?.frontmatter?.kind === 0;
+    private isProfileNote(metadata: Record<string, any>): boolean {
+        const frontmatter = metadata.frontmatter || {};
+        return frontmatter.type === 'profile' || frontmatter.kind === 0;
     }
 
-    private extractPubkey(metadata: any): string | null {
-        return metadata?.frontmatter?.pubkey || null;
+    private extractPubkey(metadata: Record<string, any>): string | null {
+        const frontmatter = metadata.frontmatter || {};
+        return frontmatter.pubkey || null;
     }
 
-    private extractEventId(metadata: any): string | null {
-        return metadata?.frontmatter?.id || null;
+    private extractEventId(metadata: Record<string, any>): string | null {
+        const frontmatter = metadata.frontmatter || {};
+        return frontmatter.id || null;
     }
 
-    private extractProfileRefs(metadata: any): string[] {
-        const refs: string[] = [];
-        if (metadata?.frontmatter?.tags) {
-            refs.push(...metadata.frontmatter.tags
-                .filter((tag: any[]) => tag[0] === 'p')
-                .map((tag: any[]) => tag[1]));
-        }
-        return refs;
+    private extractProfileRefs(metadata: Record<string, any>): string[] {
+        const frontmatter = metadata.frontmatter || {};
+        const tags = frontmatter.tags || [];
+        return tags
+            .filter((tag: any[]) => Array.isArray(tag) && tag[0] === 'p')
+            .map((tag: any[]) => tag[1]);
     }
 }

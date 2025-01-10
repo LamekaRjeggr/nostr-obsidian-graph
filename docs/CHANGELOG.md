@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.86.5] - 2024-12-25
+### Added
+- NIP-50 search support in UnifiedFetchProcessor for efficient keyword searching
+- New skipSave option for fine-grained control over file saving
+- Improved error handling and progress tracking in KeywordSearchHandler
+
+### Changed
+- Keyword search now uses relay-side filtering for better performance
+- Enhanced file path handling using Obsidian's API
+- Better search result notifications with success/failure counts
+
 ## [0.86.4] - 2024-12-24
 ### Added
 - New FETCH_SYSTEM.md documentation detailing the fetch architecture

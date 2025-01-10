@@ -1,26 +1,48 @@
 import { NostrEvent, NostrSettings } from '../../../types';
 import { RelayService } from '../../../services/core/relay-service';
-import { TemporalEventStore } from '../../../services/temporal-event-store';
 import { EventStreamHandler } from '../../../services/core/event-stream-handler';
 import { type Filter } from 'nostr-tools';
 import { EventKinds } from '../../../services/core/base-event-handler';
 import { Notice } from 'obsidian';
 
+interface ProfileStats {
+    noteCount: number;
+    oldestNote?: number;
+    newestNote?: number;
+}
+
 export class BatchProcessor {
+    private profileStats: Map<string, ProfileStats> = new Map();
+
     constructor(
         private settings: NostrSettings,
         private relayService: RelayService,
-        private streamHandler: EventStreamHandler,
-        private temporalStore: TemporalEventStore
+        private streamHandler: EventStreamHandler
     ) {}
 
+    private updateProfileStats(event: NostrEvent): void {
+        if (event.kind !== EventKinds.NOTE) return;
+
+        const stats = this.profileStats.get(event.pubkey) || {
+            noteCount: 0,
+            oldestNote: event.created_at,
+            newestNote: event.created_at
+        };
+
+        stats.noteCount++;
+        stats.oldestNote = Math.min(stats.oldestNote!, event.created_at);
+        stats.newestNote = Math.max(stats.newestNote!, event.created_at);
+        
+        this.profileStats.set(event.pubkey, stats);
+    }
+
     private hasNoNotes(pubkey: string): boolean {
-        const stats = this.temporalStore.getProfileStats(pubkey);
+        const stats = this.profileStats.get(pubkey);
         return !stats || stats.noteCount === 0;
     }
 
     private hasNotes(pubkey: string): boolean {
-        const stats = this.temporalStore.getProfileStats(pubkey);
+        const stats = this.profileStats.get(pubkey);
         return stats !== undefined && stats.noteCount > 0;
     }
 
@@ -56,6 +78,7 @@ export class BatchProcessor {
                 // Process notes through stream handler
                 for (const event of noteEvents) {
                     await this.streamHandler.handleEvent(event);
+                    this.updateProfileStats(event);
                     count++;
                     newNotes++;
                 }
@@ -97,7 +120,7 @@ export class BatchProcessor {
             
             // Get oldest note timestamp, defaulting to current time if undefined
             const timestamps = hasNotesAuthors
-                .map(a => this.temporalStore.getProfileStats(a)?.oldestNote)
+                .map(a => this.profileStats.get(a)?.oldestNote)
                 .filter((t): t is number => t !== undefined);
             const oldestNote = timestamps.length > 0 ? Math.min(...timestamps) : Math.floor(Date.now() / 1000);
 
@@ -116,6 +139,7 @@ export class BatchProcessor {
                 // Process notes through stream handler
                 for (const event of noteEvents) {
                     await this.streamHandler.handleEvent(event);
+                    this.updateProfileStats(event);
                     count++;
                     newNotes++;
                 }
@@ -160,5 +184,9 @@ export class BatchProcessor {
         }
 
         return count;
+    }
+
+    reset(): void {
+        this.profileStats.clear();
     }
 }

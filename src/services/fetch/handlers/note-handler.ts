@@ -1,28 +1,35 @@
-import { NostrEvent } from '../../../types';
+import { NostrEvent, Reference, TagType, ChronologicalMetadata } from '../../../types';
 import { EventService } from '../../../services/core/event-service';
 import { BaseEventHandler, EventKinds, ProcessingPriority } from '../../../services/core/base-event-handler';
-import { TagProcessor } from '../../../services/tags/tag-processor';
-import { ReferenceStore } from '../../../services/references/reference-store';
-import { TemporalEventStore } from '../../../services/temporal-event-store';
+import { TagProcessor } from '../../processors/tag-processor';
+import { ReferenceProcessor } from '../../processors/reference-processor';
+import { App } from 'obsidian';
+
+import { TemporalProcessor } from '../../processors/temporal-processor';
 import { ReactionProcessor } from '../../reactions/reaction-processor';
 import { NoteCacheManager } from '../../file/cache/note-cache-manager';
 import { ContentProcessor } from '../../file/utils/text-processor';
 import { PathUtils } from '../../file/utils/path-utils';
+import { FileService } from '../../core/file-service';
 
 export class NoteEventHandler extends BaseEventHandler {
     private tagProcessor: TagProcessor;
+    private referenceProcessor: ReferenceProcessor;
     private pathUtils: PathUtils;
+
+    private temporalProcessor: TemporalProcessor;
 
     constructor(
         eventService: EventService,
-        private temporalStore: TemporalEventStore,
-        private referenceStore: ReferenceStore,
         private reactionProcessor: ReactionProcessor,
         private noteCacheManager: NoteCacheManager,
-        private app: any
+        private app: App,
+        private fileService: FileService
     ) {
         super(eventService, EventKinds.NOTE, ProcessingPriority.NOTE);
         this.tagProcessor = new TagProcessor();
+        this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
+        this.temporalProcessor = new TemporalProcessor(app);
         this.pathUtils = new PathUtils(app);
     }
 
@@ -37,27 +44,32 @@ export class NoteEventHandler extends BaseEventHandler {
         const safeTitle = this.pathUtils.getPath(title, '', { extractTitle: false }).replace(/^.*[/\\](.+?)\.md$/, '$1');
         this.noteCacheManager.cacheTitle(event.id, safeTitle);
 
-        // Process tags first
-        const references = this.tagProcessor.processEventTags(event);
-        this.referenceStore.addReferences(event.id, references);
+        // Process references and temporal data
+        const [refResults, temporalResults] = await Promise.all([
+            this.referenceProcessor.process(event),
+            this.temporalProcessor.process(event)
+        ]);
         
-        // Store in temporal store for chronological ordering
-        this.temporalStore.storeEvent(event);
+        // Create metadata object
+        const metadata: ChronologicalMetadata = {
+            previousNote: temporalResults.chronological.previousEvent,
+            nextNote: temporalResults.chronological.nextEvent,
+            references: refResults.nostr.outgoing.map(id => ({ 
+                targetId: id, 
+                type: TagType.MENTION 
+            })),
+            referencedBy: refResults.nostr.incoming.map(id => ({ 
+                targetId: id, 
+                type: TagType.MENTION 
+            })),
+            ...temporalResults.metadata
+        };
+
+        // Save note with metadata
+        await this.fileService.saveNote(event, metadata);
         
-        // Get chronological links
-        const links = this.temporalStore.getConnectedEvents(event.id);
-        
-        // Get all references for this note
-        const outgoingRefs = this.referenceStore.getOutgoingReferences(event.id);
-        const incomingRefs = this.referenceStore.getIncomingReferences(event.id);
-        
-        // Emit with all metadata
-        await this.eventService.emitNote(event, {
-            previousNote: links.precedingEvent?.id,
-            nextNote: links.subsequentEvent?.id,
-            references: outgoingRefs,
-            referencedBy: incomingRefs
-        });
+        // Emit metadata for event bus
+        await this.eventService.emitNote(event, metadata);
 
         // Process any pending reactions for this note
         console.log(`Processing pending reactions for note: ${event.id}`);

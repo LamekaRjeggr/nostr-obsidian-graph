@@ -9,7 +9,7 @@ This plugin integrates Nostr with Obsidian, allowing you to fetch and organize y
   - Regular fetch: Get notes from your npub (up to 500 notes per batch)
   - Thread fetch: Get complete thread context and replies
   - Hex fetch: Get notes from specific authors (up to 500 notes)
-  - Keyword search: Advanced search with configurable scope (up to 5000 notes)
+  - Keyword search: Advanced search with NIP-50 support (up to 5000 notes)
   - Node-based fetch: Context-aware fetch from right-click menu
     - Profile mode: Fetches author's notes using hex fetch settings
     - Note mode: Fetches thread context and referenced content
@@ -87,10 +87,12 @@ Access via Command Palette (Mod+Shift+F) to configure:
    - Dedicated fetch button with auto-close
 
 4. Keyword Search
+   - NIP-50 relay-side search support
    - Batch size up to 5000 notes
    - Scope options (direct follows, follows-of-follows, global)
-   - Time range filtering
-   - Content type filtering
+   - Time range filtering (week/month/year/custom)
+   - Content type filtering (text/media/mentions)
+   - Progress tracking with success/failure counts
    - Dedicated search button with auto-close
 
 ### Quick Commands
@@ -119,9 +121,10 @@ For detailed architecture information, see STRUCTURE.md.
    - Fetch mentioned profile command not functioning
    - Under investigation for fix
 
-3. Keyword Search (Experimental)
-   - May have issues pulling notes from relays
-   - Under investigation for improvement
+3. Keyword Search
+   - Improved with NIP-50 relay-side search
+   - Better error handling and progress tracking
+   - Enhanced file path handling using Obsidian API
 
 ## Context Menu Usage
 
@@ -138,6 +141,9 @@ Right-click on any nostr file to access the node-based fetch:
 
 The plugin is actively maintained with recent improvements:
 
+- NIP-50 search support for efficient keyword searching
+- Enhanced file path handling using Obsidian's API
+- Better search result notifications with success/failure counts
 - Modular fetch settings interface
 - Enhanced hex fetch capabilities
 - Improved settings persistence

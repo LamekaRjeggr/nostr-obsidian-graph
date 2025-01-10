@@ -4,7 +4,6 @@ import { EventService } from '../core/event-service';
 import { FileService } from '../core/file-service';
 import { EventStreamHandler } from '../core/event-stream-handler';
 import { EventKinds } from '../core/base-event-handler';
-import { TemporalEventStore } from '../temporal-event-store';
 import { ProfileEventHandler } from './handlers/profile-handler';
 import { NoteEventHandler } from './handlers/note-handler';
 import { ContactEventHandler } from './handlers/contact-handler';
@@ -19,7 +18,6 @@ export class FetchProcessor {
     private streamHandler: EventStreamHandler;
     private settings: NostrSettings;
     private contactHandler: ContactEventHandler;
-    private temporalStore: TemporalEventStore;
     private batchProcessor: BatchProcessor;
     private referenceStore: ReferenceStore;
     private reactionProcessor: ReactionProcessor;
@@ -34,7 +32,6 @@ export class FetchProcessor {
     ) {
         this.settings = settings;
         this.streamHandler = new EventStreamHandler();
-        this.temporalStore = new TemporalEventStore();
         this.referenceStore = new ReferenceStore();
         this.noteCacheManager = new NoteCacheManager();
         
@@ -47,11 +44,10 @@ export class FetchProcessor {
         this.streamHandler.registerHandler(new ProfileEventHandler(eventService, fileService));
         this.streamHandler.registerHandler(new NoteEventHandler(
             eventService,
-            this.temporalStore,
-            this.referenceStore,
             this.reactionProcessor,
             this.noteCacheManager,
-            this.app
+            this.app,
+            this.fileService
         ));
         this.streamHandler.registerHandler(this.reactionProcessor);
 
@@ -59,8 +55,7 @@ export class FetchProcessor {
         this.batchProcessor = new BatchProcessor(
             settings,
             relayService,
-            this.streamHandler,
-            this.temporalStore
+            this.streamHandler
         );
     }
 
@@ -166,7 +161,6 @@ export class FetchProcessor {
 
     clearChain(): void {
         this.streamHandler.reset();
-        this.temporalStore.resetStore();
         this.referenceStore.clear();
         this.noteCacheManager.clear();
     }
