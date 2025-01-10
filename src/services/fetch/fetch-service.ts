@@ -4,7 +4,7 @@ import { EventService } from '../core/event-service';
 import { FileService } from '../core/file-service';
 import { FetchProcessor } from './fetch-processor';
 import { ValidationService } from '../validation-service';
-import { ReferenceStore } from '../references/reference-store';
+import { ReferenceProcessor } from '../processors/reference-processor';
 import { App, Notice } from 'obsidian';
 import { KeyService } from '../core/key-service';
 import { EventEmitter } from '../event-emitter';
@@ -31,7 +31,7 @@ export class FetchService {
         this.processor = new FetchProcessor(settings, relayService, eventService, fileService, app);
     }
 
-    getReferenceStore(): ReferenceStore {
+    getReferenceStore(): ReferenceProcessor {
         return this.processor.getReferenceStore();
     }
 

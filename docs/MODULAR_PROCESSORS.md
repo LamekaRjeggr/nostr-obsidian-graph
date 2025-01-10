@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the modular processing system that handles nostr events and Obsidian integration. Each processor is designed to be independent and reusable, while still being able to work together seamlessly.
+The modular processor system provides a clean, maintainable way to handle nostr events and Obsidian integration. Each processor is designed to be independent and reusable, while still being able to work together seamlessly.
 
 ## Current Implementation
 
@@ -43,26 +43,65 @@ export interface ReferenceResult {
     };
 }
 
-export class ReferenceProcessor {
-    private tagProcessor: TagProcessor;
+export class ReferenceProcessor implements IReference {
+    process(event: Event): Promise<ReferenceResult>;
+    addReference(from: string, to: string): void;
+    getOutgoingReferences(eventId: string): string[];
+    getIncomingReferences(eventId: string): string[];
+    // ... other IReference methods
+}
+```
 
-    constructor(app: App, metadataCache: MetadataCache) {
-        this.tagProcessor = new TagProcessor();
-    }
+### 3. Temporal Processor
+```typescript
+// src/services/processors/temporal-processor.ts
+export interface TemporalResult {
+    timestamp: number;
+    chronological: {
+        previousEvent?: string;
+        nextEvent?: string;
+    };
+    obsidian: {
+        previousFile?: TFile;
+        nextFile?: TFile;
+    };
+    metadata: {
+        created_at: string;
+        created: number;
+    };
+}
 
-    async process(event: Event): Promise<ReferenceResult> {
-        // Combine nostr tags and Obsidian references
-        // Handle bi-directional linking
-    }
+export class TemporalProcessor {
+    process(event: Event): Promise<TemporalResult>;
 }
 ```
 
 ## Integration Points
 
 ### 1. Note Handler Integration
-- Uses ReferenceProcessor for comprehensive reference handling
-- Combines nostr event tags with Obsidian wiki-links
-- Maintains bi-directional references
+```typescript
+export class NoteEventHandler extends BaseEventHandler {
+    private tagProcessor: TagProcessor;
+    private referenceProcessor: ReferenceProcessor;
+    private temporalProcessor: TemporalProcessor;
+
+    async process(event: NostrEvent): Promise<void> {
+        // Process references and temporal data
+        const [refResults, temporalResults] = await Promise.all([
+            this.referenceProcessor.process(event),
+            this.temporalProcessor.process(event)
+        ]);
+        
+        // Create metadata and save note
+        const metadata = {
+            ...refResults.metadata,
+            ...temporalResults.metadata
+        };
+        
+        await this.fileService.saveNote(event, metadata);
+    }
+}
+```
 
 ### 2. File Service Integration
 - Saves references in note frontmatter
@@ -76,28 +115,7 @@ export class ReferenceProcessor {
 
 ## Next Steps
 
-### 1. Temporal Processing
-- [ ] Implement TemporalProcessor
-- [ ] Handle chronological relationships
-- [ ] Integrate with existing processors
-
-```typescript
-export interface TemporalResult {
-    previousEvent?: string;
-    nextEvent?: string;
-    timestamp: number;
-    obsidianLinks: {
-        previous?: TFile;
-        next?: TFile;
-    };
-}
-
-export class TemporalProcessor {
-    process(event: Event): TemporalResult;
-}
-```
-
-### 2. Reaction Processing
+### 1. Reaction Processing
 - [ ] Implement ReactionProcessor
 - [ ] Handle likes, zaps, and replies
 - [ ] Update note metadata
@@ -117,15 +135,15 @@ export class ReactionProcessor {
 }
 ```
 
+### 2. Testing & Documentation
+- [ ] Add unit tests for each processor
+- [ ] Document processor interactions
+- [ ] Create usage examples
+
 ### 3. Enhanced Integration
 - [ ] Add processor configuration options
 - [ ] Implement processor composition
 - [ ] Add batch processing support
-
-### 4. Testing & Documentation
-- [ ] Add unit tests for each processor
-- [ ] Document processor interactions
-- [ ] Create usage examples
 
 ## Benefits
 
@@ -148,13 +166,14 @@ export class ReactionProcessor {
 
 ### Completed
 - [x] Implemented TagProcessor
-- [x] Implemented ReferenceProcessor
+- [x] Implemented ReferenceProcessor with IReference interface
+- [x] Implemented TemporalProcessor
 - [x] Integrated with note handling
 - [x] Updated file service integration
-- [x] Removed deprecated code
+- [x] Removed deprecated ReferenceStore
+- [x] Migrated all services to use new processors
 
 ### In Progress
-- [ ] Temporal processing implementation
 - [ ] Reaction handling
 - [ ] Enhanced configuration options
 - [ ] Testing suite

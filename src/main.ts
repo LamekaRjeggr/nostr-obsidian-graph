@@ -24,8 +24,7 @@ import { ThreadFetchHandler } from './services/fetch/handlers/thread-fetch-handl
 import { NostrEventBus } from './experimental/event-bus/event-bus';
 import { NostrEventType } from './experimental/event-bus/types';
 import { ContactGraphService } from './services/contacts/contact-graph-service';
-import { TemporalEventStore } from './services/temporal-event-store';
-import { ReferenceStore } from './services/references/reference-store';
+import { ReferenceProcessor } from './services/processors/reference-processor';
 import { NoteEventHandler } from './services/fetch/handlers/note-handler';
 
 const DEFAULT_SETTINGS: NostrSettings = {
@@ -160,10 +159,13 @@ export default class NostrPlugin extends Plugin {
             this.app
         );
 
+        // Create reference processor
+        const referenceProcessor = new ReferenceProcessor(this.app, this.app.metadataCache);
+
         // Initialize node fetch handler
         const nodeFetchHandler = new NodeFetchHandler(
             this.eventService,
-            this.fetchService.getReferenceStore(),
+            referenceProcessor,
             this.unifiedFetchProcessor,
             this.app,
             {
@@ -265,7 +267,8 @@ export default class NostrPlugin extends Plugin {
             id: 'fetch-mentioned-profiles',
             name: 'Fetch Mentioned Profiles',
             callback: async () => {
-                const mentions = this.fetchService.getReferenceStore().getAllMentions();
+                const referenceProcessor = new ReferenceProcessor(this.app, this.app.metadataCache);
+                const mentions = referenceProcessor.getAllMentions();
                 if (mentions.length === 0) return;
                     
                 await this.mentionedProfileFetcher.fetchMentionedProfiles(mentions);

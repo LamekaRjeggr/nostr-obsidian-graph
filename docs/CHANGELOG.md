@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.86.7] - 2024-12-27
+### Changed
+- Migrated from ReferenceStore to ReferenceProcessor for better modularity
+- Added IReference interface for consistent reference handling
+- Improved reference handling with better separation of concerns
+- Removed deprecated ReferenceStore implementation
+
+## [0.86.6] - 2024-12-26
+### Added
+- New modular processor architecture for better code organization and maintainability
+- TagProcessor for handling nostr event tags
+- ReferenceProcessor for managing bi-directional references
+- TemporalProcessor for chronological relationships
+- Updated documentation in MODULAR_PROCESSORS.md
+
+### Changed
+- Refactored note handling to use new processor system
+- Improved reference handling with better separation of concerns
+- Enhanced temporal processing with Obsidian integration
+- Removed deprecated code and legacy handlers
+
+### Fixed
+- Better type safety in processor implementations
+- Improved error handling in event processing
+- More consistent reference handling
+
 ## [0.86.5] - 2024-12-25
 ### Added
 - NIP-50 search support in UnifiedFetchProcessor for efficient keyword searching

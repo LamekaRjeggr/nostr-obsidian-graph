@@ -3,7 +3,7 @@ import { NostrEvent, TagType } from '../../../types';
 import { EventService } from '../../../services/core/event-service';
 import { BaseEventHandler, EventKinds, ProcessingPriority } from '../../../services/core/base-event-handler';
 import { TagProcessor } from '../../processors/tag-processor';
-import { ReferenceStore } from '../../../services/references/reference-store';
+import { ReferenceProcessor } from '../../../services/processors/reference-processor';
 import { EventHandler, NodeFetchEvent } from '../../../experimental/event-bus/types';
 import { UnifiedFetchProcessor } from '../unified-fetch-processor';
 import { FetchSettings } from '../../../views/modals/types';
@@ -14,7 +14,7 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
 
     constructor(
         eventService: EventService,
-        private referenceStore: ReferenceStore,
+        private referenceProcessor: ReferenceProcessor,
         private unifiedFetchProcessor: UnifiedFetchProcessor,
         private app: App,
         private fetchSettings: FetchSettings
@@ -32,14 +32,16 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
             ...(tagResults.root ? [{ targetId: tagResults.root, type: TagType.ROOT }] : []),
             ...(tagResults.replyTo ? [{ targetId: tagResults.replyTo, type: TagType.REPLY }] : [])
         ];
-        this.referenceStore.addReferences(event.id, references);
+        references.forEach(ref => {
+            this.referenceProcessor.addReference(event.id, ref.targetId);
+        });
         
-        const outgoingRefs = this.referenceStore.getOutgoingReferences(event.id);
-        const incomingRefs = this.referenceStore.getIncomingReferences(event.id);
+        const outgoingRefs = this.referenceProcessor.getOutgoingReferences(event.id);
+        const incomingRefs = this.referenceProcessor.getIncomingReferences(event.id);
         
         await this.eventService.emitNote(event, {
-            references: outgoingRefs,
-            referencedBy: incomingRefs
+            references: outgoingRefs.map(ref => ({ targetId: ref, type: TagType.MENTION })),
+            referencedBy: incomingRefs.map(ref => ({ targetId: ref, type: TagType.MENTION }))
         });
     }
 

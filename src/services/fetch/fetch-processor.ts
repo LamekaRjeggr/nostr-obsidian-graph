@@ -8,7 +8,7 @@ import { ProfileEventHandler } from './handlers/profile-handler';
 import { NoteEventHandler } from './handlers/note-handler';
 import { ContactEventHandler } from './handlers/contact-handler';
 import { BatchProcessor } from './processors/batch-processor';
-import { ReferenceStore } from '../references/reference-store';
+import { ReferenceProcessor } from '../processors/reference-processor';
 import { ReactionProcessor } from '../reactions/reaction-processor';
 import { Filter } from 'nostr-tools';
 import { App, Notice } from 'obsidian';
@@ -19,7 +19,7 @@ export class FetchProcessor {
     private settings: NostrSettings;
     private contactHandler: ContactEventHandler;
     private batchProcessor: BatchProcessor;
-    private referenceStore: ReferenceStore;
+    private referenceProcessor: ReferenceProcessor;
     private reactionProcessor: ReactionProcessor;
     private noteCacheManager: NoteCacheManager;
 
@@ -32,7 +32,7 @@ export class FetchProcessor {
     ) {
         this.settings = settings;
         this.streamHandler = new EventStreamHandler();
-        this.referenceStore = new ReferenceStore();
+        this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
         this.noteCacheManager = new NoteCacheManager();
         
         // Initialize handlers
@@ -59,8 +59,8 @@ export class FetchProcessor {
         );
     }
 
-    getReferenceStore(): ReferenceStore {
-        return this.referenceStore;
+    getReferenceStore(): ReferenceProcessor {
+        return this.referenceProcessor;
     }
 
     async processMainUser(hex: string, currentCount: number, includeContacts: boolean = true): Promise<number> {
@@ -161,7 +161,7 @@ export class FetchProcessor {
 
     clearChain(): void {
         this.streamHandler.reset();
-        this.referenceStore.clear();
+        this.referenceProcessor.clear();
         this.noteCacheManager.clear();
     }
 }

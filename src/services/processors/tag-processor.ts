@@ -81,16 +81,34 @@ export class TagProcessor {
     /**
      * Helper method to check if an event is a reply
      */
-    isReply(event: Event): boolean {
-        return event.tags.some(tag => 
-            tag[0] === 'e' && (tag[2] === 'reply' || !tag[2])
-        );
+    isReply(fromId: string, toId: string): boolean {
+        const mockEvent: Event = {
+            id: fromId,
+            pubkey: '',
+            created_at: 0,
+            kind: 1,
+            tags: [['e', toId, '', 'reply']],
+            content: '',
+            sig: ''
+        };
+        const result = this.process(mockEvent);
+        return result.replyTo === toId;
     }
 
     /**
      * Helper method to check if an event is a root note
      */
-    isRoot(event: Event): boolean {
-        return !this.isReply(event);
+    isRoot(fromId: string, toId: string): boolean {
+        const mockEvent: Event = {
+            id: fromId,
+            pubkey: '',
+            created_at: 0,
+            kind: 1,
+            tags: [['e', toId, '', 'root']],
+            content: '',
+            sig: ''
+        };
+        const result = this.process(mockEvent);
+        return result.root === toId;
     }
 }
