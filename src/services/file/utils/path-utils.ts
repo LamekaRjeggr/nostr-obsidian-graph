@@ -25,13 +25,18 @@ export class PathUtils {
         // Clean and limit length
         const maxLength = options.maxLength || 100;
         title = title
-            .replace(/\s+/g, ' ')  // Collapse spaces
-            .trim()                // Remove edges
-            .slice(0, maxLength);  // Limit length
+            .replace(/[\\/:*?"<>|]/g, '-') // Replace invalid chars with dash
+            .replace(/\s+/g, ' ')          // Collapse spaces
+            .trim()                        // Remove edges
+            .slice(0, maxLength);          // Limit length
+
+        // Ensure we have a valid filename
+        if (!title) {
+            title = 'untitled';
+        }
 
         // Use Obsidian's path normalization
-        const safePath = normalizePath(`${directory}/${title}.md`);
-        return safePath;
+        return normalizePath(`${directory}/${title}.md`);
     }
 
     /**

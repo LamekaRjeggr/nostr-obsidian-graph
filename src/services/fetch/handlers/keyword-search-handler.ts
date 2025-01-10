@@ -77,9 +77,6 @@ export class KeywordSearchHandler implements EventHandler<KeywordSearchEvent> {
         try {
             const { keywords, limit, searchSettings } = event;
             
-            // Create case-insensitive search terms
-            const searchTerms = keywords.map(k => k.toLowerCase());
-            
             // Get time range filters
             const timeRange = this.getTimeRangeFilter(
                 searchSettings.timeRange,
@@ -93,36 +90,40 @@ export class KeywordSearchHandler implements EventHandler<KeywordSearchEvent> {
             // Get scope filter
             const scopeFilter = await this.getScopeFilter(searchSettings.scope);
             
-            // Use unified fetch processor with combined filters
+            // Use unified fetch processor with NIP-50 search
             const results = await this.unifiedFetchProcessor.fetchWithOptions({
                 kinds: [EventKinds.NOTE],
                 limit: limit,
                 since: timeRange.since,
                 until: timeRange.until,
+                search: keywords,  // Use NIP-50 search
+                skipSave: true,    // Skip auto-save since we'll handle it
+                // Apply additional filters that can't be done via NIP-50
                 filter: (note) => {
                     // Check scope first (uses contact graph)
                     if (!scopeFilter(note)) return false;
 
                     // Check content type
-                    if (!contentTypeFilter(note)) return false;
-
-                    // Finally check keywords
-                    return searchTerms.some(term => note.content.toLowerCase().includes(term));
+                    return contentTypeFilter(note);
                 }
             });
 
-            new Notice(`Found ${results.length} notes matching keywords: ${keywords.join(', ')}`);
-
-            // Process each result through the existing note creation system
+            // Save each result
+            let savedCount = 0;
             for (const note of results) {
-                await this.fileService.saveNote(note, {
-                    references: [], // No references for search results
-                    referencedBy: [], // No backlinks initially
-                });
+                try {
+                    await this.fileService.saveNote(note, {
+                        references: [],
+                        referencedBy: []
+                    });
+                    savedCount++;
+                } catch (error) {
+                    console.error('Error saving note:', error);
+                }
             }
 
-            // Show completion notice
-            new Notice(`Created ${results.length} notes from search results`);
+            new Notice(`Found ${results.length} notes matching keywords: ${keywords.join(', ')}\nSaved ${savedCount} notes`);
+
         } catch (error) {
             console.error('Error in keyword search:', error);
             new Notice('Error searching notes by keywords');

@@ -17,6 +17,8 @@ export interface FetchOptions {
     author?: string;
     ids?: string[];        // Added for specific event fetching
     tags?: [string, string][]; // Added for tag-based fetching
+    search?: string[];     // Added for keyword search support
+    skipSave?: boolean;    // Skip auto-saving of results
 }
 
 export class UnifiedFetchProcessor {
@@ -30,6 +32,58 @@ export class UnifiedFetchProcessor {
 
     setNodeFetchHandler(handler: NodeFetchHandler) {
         this.nodeFetchHandler = handler;
+    }
+
+    async fetchWithOptions(options: FetchOptions): Promise<NostrEvent[]> {
+        try {
+            // Validate hex if author is provided
+            if (options.author && !ValidationService.validateHex(options.author)) {
+                throw new Error('Invalid hex key format');
+            }
+
+            // Build filter for relay
+            const filter = {
+                kinds: options.kinds,
+                limit: options.limit,
+                since: options.since,
+                until: options.until,
+                authors: options.author ? [options.author] : undefined,
+                ids: options.ids,
+                '#e': options.tags?.filter(t => t[0] === 'e').map(t => t[1]),
+                '#p': options.tags?.filter(t => t[0] === 'p').map(t => t[1]),
+                // Add NIP-50 search if keywords provided
+                search: options.search ? options.search.join(' ') : undefined
+            };
+
+            new Notice(`Fetching events with limit ${options.limit}...`);
+            
+            // Fetch events from relay
+            const events = await this.relayService.subscribe([filter]);
+            
+            // Apply any additional custom filter if provided
+            // This allows for more complex filtering beyond what NIP-50 supports
+            const filteredEvents = options.filter 
+                ? events.filter(options.filter)
+                : events;
+
+            new Notice(`Found ${filteredEvents.length} matching events`);
+
+            // Save events unless explicitly skipped
+            if (!options.skipSave) {
+                for (const event of filteredEvents) {
+                    await this.fileService.saveNote(event, {
+                        references: [],
+                        referencedBy: [],
+                    });
+                }
+            }
+
+            return filteredEvents;
+        } catch (error) {
+            console.error('Error in UnifiedFetchProcessor:', error);
+            new Notice(`Error fetching events: ${error.message}`);
+            throw error;
+        }
     }
 
     // Method for fetching node-based content
@@ -101,54 +155,7 @@ export class UnifiedFetchProcessor {
         }
     }
 
-    async fetchWithOptions(options: FetchOptions): Promise<NostrEvent[]> {
-        try {
-            // Validate hex if author is provided
-            if (options.author && !ValidationService.validateHex(options.author)) {
-                throw new Error('Invalid hex key format');
-            }
-
-            // Build filter for relay
-            const filter = {
-                kinds: options.kinds,
-                limit: options.limit,
-                since: options.since,
-                until: options.until,
-                authors: options.author ? [options.author] : undefined,
-                ids: options.ids,
-                '#e': options.tags?.filter(t => t[0] === 'e').map(t => t[1]),
-                '#p': options.tags?.filter(t => t[0] === 'p').map(t => t[1])
-            };
-
-            new Notice(`Fetching events with limit ${options.limit}...`);
-            
-            // Fetch events from relay
-            const events = await this.relayService.subscribe([filter]);
-            
-            // Apply custom filter if provided
-            const filteredEvents = options.filter 
-                ? events.filter(options.filter)
-                : events;
-
-            new Notice(`Found ${filteredEvents.length} matching events`);
-
-            // Save events using Obsidian's API
-            for (const event of filteredEvents) {
-                await this.fileService.saveNote(event, {
-                    references: [],
-                    referencedBy: [],
-                });
-            }
-
-            return filteredEvents;
-        } catch (error) {
-            console.error('Error in UnifiedFetchProcessor:', error);
-            new Notice(`Error fetching events: ${error.message}`);
-            throw error;
-        }
-    }
-
-    // New method for fetching a complete note by ID
+    // Method for fetching a complete note by ID
     async fetchCompleteNote(eventId: string): Promise<NostrEvent | null> {
         try {
             const events = await this.fetchWithOptions({
