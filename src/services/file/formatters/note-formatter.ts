@@ -17,7 +17,7 @@ export interface NoteFrontmatter {
     pubkey: string;
     author?: string;
     created: number;
-    kind: number;
+    kind?: number;        // Make kind optional to match NoteFile
     nostr_tags: any[];    // Store raw nostr tags as array
     tags: string[];       // Store both inline hashtags and processed topic tags
     root?: string;
@@ -74,7 +74,7 @@ export class NoteFormatter {
             id: note.id,
             pubkey: `[[${note.pubkey}]]`,
             created: note.created_at,
-            kind: note.kind,
+            kind: note.kind || 1, // Default to kind 1 (text note) if undefined
             nostr_tags: note.tags,  // Store raw nostr tags as array
             tags: []  // Initialize tags array
         };

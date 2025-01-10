@@ -42,13 +42,16 @@ export interface NostrEvent {
     sig: string;
 }
 
-export interface ProfileData {
+export interface NostrProfile {
     pubkey: string;
     name?: string;
-    displayName?: string;
     nip05?: string;
     picture?: string;
     about?: string;
+}
+
+export interface ProfileData extends NostrProfile {
+    displayName?: string;
 }
 
 export interface ChronologicalMetadata {
@@ -102,16 +105,32 @@ export interface EventMetadata {
 export interface NoteFile {
     id: string;
     pubkey: string;
-    title: string;
+    title?: string;
     content: string;
     created_at: number;
-    kind: number;
+    kind?: number;
     tags: string[][];
     authorName?: string;
     previousNote?: string;
     nextNote?: string;
     references?: Reference[];
     referencedBy?: Reference[];
+    mentions?: string[];
+}
+
+export interface RelayConnection {
+    url: string;
+    enabled: boolean;
+    status: 'connected' | 'disconnected';
+}
+
+export interface SubscriptionOptions {
+    filters?: {
+        kinds?: number[];
+        authors?: string[];
+        '#e'?: string[];
+        limit?: number;
+    }[];
 }
 
 export interface GroupedReferences {
