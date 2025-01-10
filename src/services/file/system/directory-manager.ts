@@ -14,7 +14,10 @@ export class DirectoryManager {
             this.settings.profilesDirectory,
             this.settings.directories.replies,
             `${this.settings.profilesDirectory}/mentions`,
-            this.settings.polls.directory  // Add polls directory
+            this.settings.polls.directory,
+            'nostr/User Profile',
+            'nostr/User Notes',
+            'nostr/Replies to User'
         ].filter((dir): dir is string => !!dir);
 
         for (const dir of directories) {
@@ -29,7 +32,10 @@ export class DirectoryManager {
             this.settings.directories.main,
             this.settings.notesDirectory,
             this.settings.profilesDirectory,
-            this.settings.polls.directory  // Add polls directory
+            this.settings.polls.directory,
+            'nostr/User Profile',
+            'nostr/User Notes',
+            'nostr/Replies to User'
         ].filter((dir): dir is string => !!dir);
 
         for (const dir of directories) {

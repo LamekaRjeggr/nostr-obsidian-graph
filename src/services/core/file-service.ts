@@ -9,6 +9,7 @@ import { TagProcessor } from '../tags/tag-processor';
 import { FrontmatterUtil } from '../file/utils/frontmatter-util';
 import { TemporalUtils } from '../temporal/temporal-utils';
 import { logger } from './logger';
+import { KeyService } from './key-service';
 
 interface NoteMeta {
     id: string;
@@ -49,16 +50,32 @@ export class FileService implements LinkResolver {
         this.tagProcessor = new TagProcessor();
     }
 
-    private getNotePath(event: NostrEvent): string {
-        const isReply = this.tagProcessor.isReply(event);
-        const baseDir = isReply && this.settings.directories.replies 
-            ? this.settings.directories.replies 
-            : this.settings.notesDirectory;
+    private isUserContent(pubkey: string): boolean {
+        const userHex = KeyService.npubToHex(this.settings.npub);
+        return userHex === pubkey;
+    }
 
+    private getNotePath(event: NostrEvent): string {
         const safeTitle = TextProcessor.sanitizeFilename(
             TextProcessor.extractFirstSentence(event.content)
         );
-        return `${baseDir}/${safeTitle}.md`;
+
+        // Check if this is user's own note
+        if (this.isUserContent(event.pubkey)) {
+            return `nostr/User Notes/${safeTitle}.md`;
+        }
+
+        // Check if this is a reply to the user
+        const userHex = KeyService.npubToHex(this.settings.npub);
+        const isReplyToUser = event.tags.some(tag => 
+            tag[0] === 'p' && tag[1] === userHex
+        );
+        if (isReplyToUser) {
+            return `nostr/Replies to User/${safeTitle}.md`;
+        }
+
+        // Default to original notes directory for other content
+        return `${this.settings.notesDirectory}/${safeTitle}.md`;
     }
 
     private getPollPath(poll: PollFrontmatter): string {
@@ -241,7 +258,10 @@ export class FileService implements LinkResolver {
         await this.directoryManager.ensureDirectories();
 
         const fileName = this.profileFormatter.getFileName(profile);
-        const filePath = `${this.settings.profilesDirectory}/${fileName}`;
+        // If this is the user's profile, save it in User Profile directory
+        const filePath = this.isUserContent(profile.pubkey)
+            ? `nostr/User Profile/${fileName}`
+            : `${this.settings.profilesDirectory}/${fileName}`;
         const file = this.app.vault.getAbstractFileByPath(filePath);
 
         const existingFrontmatter = file instanceof TFile
@@ -316,10 +336,12 @@ export class FileService implements LinkResolver {
             }
         }
 
-        // Check notes
+        // Check notes in all relevant directories
         const directories = [
             this.settings.notesDirectory,
-            this.settings.directories.replies
+            this.settings.directories.replies,
+            'nostr/User Notes',
+            'nostr/Replies to User'
         ].filter((dir): dir is string => typeof dir === 'string');
 
         for (const dir of directories) {
@@ -393,8 +415,9 @@ export class FileService implements LinkResolver {
             return null;
         }
 
-        // If it's a profile file (in profiles directory)
-        if (filePath.startsWith(this.settings.profilesDirectory)) {
+        // If it's a profile file (in any profile directory)
+        if (filePath.startsWith(this.settings.profilesDirectory) || 
+            filePath.startsWith('nostr/User Profile')) {
             // For profiles, the pubkey is stored in aliases array
             const pubkey = frontmatter.aliases?.[0];
             if (!pubkey) {
