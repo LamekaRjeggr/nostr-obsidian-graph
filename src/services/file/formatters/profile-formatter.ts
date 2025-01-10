@@ -1,5 +1,5 @@
 import { ProfileData } from '../../../types';
-import { TextProcessor } from '../utils/text-processor';
+import { ContentProcessor } from '../utils/text-processor';
 import { ProfileContentFormatter, ProfileFormatOptions } from './profile-content-formatter';
 
 export interface ProfileFormatterOptions extends ProfileFormatOptions {
@@ -26,7 +26,7 @@ export class ProfileFormatter {
 
     getFileName(profile: ProfileData): string {
         const displayName = this.getDisplayName(profile);
-        const sanitized = TextProcessor.sanitizeFilename(displayName);
+        const sanitized = ContentProcessor.cleanContent(displayName);
         return `${sanitized}.md`;
     }
 }

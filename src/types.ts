@@ -98,3 +98,29 @@ export interface EventMetadata {
     referencedBy: Reference[];
     threadContext?: ThreadContext;
 }
+
+export interface NoteFile {
+    id: string;
+    pubkey: string;
+    title: string;
+    content: string;
+    created_at: number;
+    kind: number;
+    tags: string[][];
+    authorName?: string;
+    previousNote?: string;
+    nextNote?: string;
+    references?: Reference[];
+    referencedBy?: Reference[];
+}
+
+export interface GroupedReferences {
+    [TagType.EVENT]?: TagReference[];
+    [TagType.PUBKEY]?: TagReference[];
+    [TagType.TAG]?: TagReference[];
+    [TagType.REFERENCE]?: TagReference[];
+    [TagType.ROOT]?: TagReference[];
+    [TagType.REPLY]?: TagReference[];
+    [TagType.MENTION]?: TagReference[];
+    [TagType.TOPIC]?: TagReference[];
+}

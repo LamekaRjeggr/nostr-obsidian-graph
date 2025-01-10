@@ -6,20 +6,24 @@ import { ReferenceStore } from '../../../services/references/reference-store';
 import { TemporalEventStore } from '../../../services/temporal-event-store';
 import { ReactionProcessor } from '../../reactions/reaction-processor';
 import { NoteCacheManager } from '../../file/cache/note-cache-manager';
-import { TextProcessor } from '../../file/utils/text-processor';
+import { ContentProcessor } from '../../file/utils/text-processor';
+import { PathUtils } from '../../file/utils/path-utils';
 
 export class NoteEventHandler extends BaseEventHandler {
     private tagProcessor: TagProcessor;
+    private pathUtils: PathUtils;
 
     constructor(
         eventService: EventService,
         private temporalStore: TemporalEventStore,
         private referenceStore: ReferenceStore,
         private reactionProcessor: ReactionProcessor,
-        private noteCacheManager: NoteCacheManager
+        private noteCacheManager: NoteCacheManager,
+        private app: any
     ) {
         super(eventService, EventKinds.NOTE, ProcessingPriority.NOTE);
         this.tagProcessor = new TagProcessor();
+        this.pathUtils = new PathUtils(app);
     }
 
     async process(event: NostrEvent): Promise<void> {
@@ -28,9 +32,9 @@ export class NoteEventHandler extends BaseEventHandler {
         console.log(`Processing note: ${event.id}`);
 
         // Cache the note title
-        const safeTitle = TextProcessor.sanitizeFilename(
-            TextProcessor.extractFirstSentence(event.content)
-        );
+        const title = ContentProcessor.extractTitle(event.content);
+        // Get just the filename without directory or extension
+        const safeTitle = this.pathUtils.getPath(title, '', { extractTitle: false }).replace(/^.*[/\\](.+?)\.md$/, '$1');
         this.noteCacheManager.cacheTitle(event.id, safeTitle);
 
         // Process tags first

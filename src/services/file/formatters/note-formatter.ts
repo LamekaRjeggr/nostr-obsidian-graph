@@ -1,17 +1,11 @@
-import { NoteFile, TagReference, TagType } from '../../../types';
-import { TextProcessor } from '../utils/text-processor';
+import { NoteFile, TagReference, TagType, GroupedReferences } from '../../../types';
+import { ContentProcessor } from '../utils/text-processor';
 import { YAMLProcessor } from '../utils/yaml-processor';
 
 export interface LinkResolver {
     getTitleById(id: string): Promise<string | null>;
 }
 
-export interface GroupedReferences {
-    [TagType.MENTION]?: TagReference[];
-    [TagType.REPLY]?: TagReference[];
-    [TagType.ROOT]?: TagReference[];
-    [TagType.TOPIC]?: TagReference[];
-}
 
 export interface ChronologicalMetadata {
     previousNote?: string;
@@ -52,7 +46,7 @@ export class NoteFormatter {
         const sections = [
             `# ${note.title}`,
             YAMLProcessor.stringify(mergedFrontmatter),
-            TextProcessor.cleanContent(note.content)
+            ContentProcessor.cleanContent(note.content)
         ];
 
         // Add chronological links if they exist
@@ -91,18 +85,15 @@ export class NoteFormatter {
 
         // Process nostr topic tags
         const nostrTopics: Set<string> = new Set();
-        note.tags.forEach(tag => {
-            const [type, ...params] = tag;
-            if (type === 't') {
-                const topic = params[0];
-                if (topic) {
-                    nostrTopics.add(topic.toLowerCase());
-                }
+        note.tags.forEach((tag: string[]) => {
+            const [type, value] = tag;
+            if (type === 't' && value) {
+                nostrTopics.add(value.toLowerCase());
             }
         });
 
         // Extract inline hashtags from content
-        const inlineHashtags = TextProcessor.extractHashtags(note.content);
+        const inlineHashtags = ContentProcessor.extractHashtags(note.content);
 
         // Combine both types of tags, ensuring uniqueness
         const allTags = new Set([...nostrTopics, ...inlineHashtags]);
@@ -113,24 +104,28 @@ export class NoteFormatter {
         if (references.length > 0) {
             const grouped = this.groupReferencesByType(references);
             
-            if (grouped[TagType.ROOT]?.length) {
+            if (grouped[TagType.ROOT]?.length && grouped[TagType.ROOT][0].targetId) {
                 const rootId = grouped[TagType.ROOT][0].targetId;
                 const rootTitle = await this.linkResolver.getTitleById(rootId);
                 frontmatter.root = `[[${rootTitle || rootId}]]`;
             }
             
-            if (grouped[TagType.REPLY]?.length) {
+            if (grouped[TagType.REPLY]?.length && grouped[TagType.REPLY][0].targetId) {
                 const replyId = grouped[TagType.REPLY][0].targetId;
                 const replyTitle = await this.linkResolver.getTitleById(replyId);
                 frontmatter.reply_to = `[[${replyTitle || replyId}]]`;
             }
 
             if (grouped[TagType.MENTION]?.length) {
-                frontmatter.mentions = grouped[TagType.MENTION].map(ref => ref.targetId);
+                frontmatter.mentions = grouped[TagType.MENTION]
+                    .map((ref: TagReference) => ref.targetId)
+                    .filter((id: string | undefined): id is string => id !== undefined);
             }
 
             if (grouped[TagType.TOPIC]?.length) {
-                frontmatter.topics = grouped[TagType.TOPIC].map(ref => ref.targetId);
+                frontmatter.topics = grouped[TagType.TOPIC]
+                    .map((ref: TagReference) => ref.targetId)
+                    .filter((id: string | undefined): id is string => id !== undefined);
             }
         }
 
@@ -163,8 +158,10 @@ export class NoteFormatter {
         if (grouped[TagType.ROOT]?.length) {
             sections.push('### Thread Root');
             for (const ref of grouped[TagType.ROOT]) {
-                const title = await this.linkResolver.getTitleById(ref.targetId);
-                sections.push(`- [[${title || ref.targetId}]]`);
+                if (ref.targetId) {
+                    const title = await this.linkResolver.getTitleById(ref.targetId);
+                    sections.push(`- [[${title || ref.targetId}]]`);
+                }
             }
         }
 
@@ -172,8 +169,10 @@ export class NoteFormatter {
         if (grouped[TagType.REPLY]?.length) {
             sections.push('### Replying To');
             for (const ref of grouped[TagType.REPLY]) {
-                const title = await this.linkResolver.getTitleById(ref.targetId);
-                sections.push(`- [[${title || ref.targetId}]]`);
+                if (ref.targetId) {
+                    const title = await this.linkResolver.getTitleById(ref.targetId);
+                    sections.push(`- [[${title || ref.targetId}]]`);
+                }
             }
         }
 
@@ -181,8 +180,10 @@ export class NoteFormatter {
         if (grouped[TagType.MENTION]?.length) {
             sections.push('### Mentions');
             for (const ref of grouped[TagType.MENTION]) {
-                const title = await this.linkResolver.getTitleById(ref.targetId);
-                sections.push(`- [[${title || ref.targetId}]]`);
+                if (ref.targetId) {
+                    const title = await this.linkResolver.getTitleById(ref.targetId);
+                    sections.push(`- [[${title || ref.targetId}]]`);
+                }
             }
         }
 
@@ -190,7 +191,9 @@ export class NoteFormatter {
         if (grouped[TagType.TOPIC]?.length) {
             sections.push('### Topics');
             for (const ref of grouped[TagType.TOPIC]) {
-                sections.push(`- #${ref.targetId}`);
+                if (ref.targetId) {
+                    sections.push(`- #${ref.targetId}`);
+                }
             }
         }
 
@@ -207,8 +210,10 @@ export class NoteFormatter {
         if (grouped[TagType.REPLY]?.length) {
             sections.push('### Replies');
             for (const ref of grouped[TagType.REPLY]) {
-                const title = await this.linkResolver.getTitleById(ref.targetId);
-                sections.push(`- [[${title || ref.targetId}]]`);
+                if (ref.targetId) {
+                    const title = await this.linkResolver.getTitleById(ref.targetId);
+                    sections.push(`- [[${title || ref.targetId}]]`);
+                }
             }
         }
 
@@ -216,8 +221,10 @@ export class NoteFormatter {
         if (grouped[TagType.MENTION]?.length) {
             sections.push('### Mentioned In');
             for (const ref of grouped[TagType.MENTION]) {
-                const title = await this.linkResolver.getTitleById(ref.targetId);
-                sections.push(`- [[${title || ref.targetId}]]`);
+                if (ref.targetId) {
+                    const title = await this.linkResolver.getTitleById(ref.targetId);
+                    sections.push(`- [[${title || ref.targetId}]]`);
+                }
             }
         }
 

@@ -1,15 +1,16 @@
 import { Vault, TFile } from 'obsidian';
-import { NostrEvent, NostrSettings, ProfileData, ChronologicalMetadata, TagReference, TagType, PollFrontmatter } from '../../types';
+import { NostrEvent, NostrSettings, ProfileData, ChronologicalMetadata, TagReference, TagType, PollFrontmatter, GroupedReferences } from '../../types';
 import { NoteCacheManager } from '../file/cache/note-cache-manager';
 import { NoteFormatter, LinkResolver } from '../file/formatters/note-formatter';
 import { ProfileFormatter } from '../file/formatters/profile-formatter';
 import { DirectoryManager } from '../file/system/directory-manager';
-import { TextProcessor } from '../file/utils/text-processor';
+import { ContentProcessor } from '../file/utils/text-processor';
 import { TagProcessor } from '../tags/tag-processor';
 import { FrontmatterUtil } from '../file/utils/frontmatter-util';
 import { TemporalUtils } from '../temporal/temporal-utils';
 import { logger } from './logger';
 import { KeyService } from './key-service';
+import { PathUtils } from '../file/utils/path-utils';
 
 interface NoteMeta {
     id: string;
@@ -38,6 +39,8 @@ export class FileService implements LinkResolver {
     private tagProcessor: TagProcessor;
     private titleCache: Map<string, string> = new Map();
 
+    private pathUtils: PathUtils;
+
     constructor(
         private vault: Vault,
         private settings: NostrSettings,
@@ -48,6 +51,7 @@ export class FileService implements LinkResolver {
         this.directoryManager = new DirectoryManager(vault, settings);
         this.noteCacheManager = new NoteCacheManager();
         this.tagProcessor = new TagProcessor();
+        this.pathUtils = new PathUtils(app);
     }
 
     private isUserContent(pubkey: string): boolean {
@@ -56,38 +60,31 @@ export class FileService implements LinkResolver {
     }
 
     private getNotePath(event: NostrEvent): string {
-        const safeTitle = TextProcessor.sanitizeFilename(
-            TextProcessor.extractFirstSentence(event.content)
-        );
-
         // Check if this is user's own note
         if (this.isUserContent(event.pubkey)) {
-            return `nostr/User Notes/${safeTitle}.md`;
+            return this.pathUtils.getNotePath(event.content, 'nostr/User Notes');
         }
 
         // Check if this is a reply to the user
         const userHex = KeyService.npubToHex(this.settings.npub);
-        const isReplyToUser = event.tags.some(tag => 
+        const isReplyToUser = event.tags.some((tag: string[]) => 
             tag[0] === 'p' && tag[1] === userHex
         );
         if (isReplyToUser) {
-            return `nostr/Replies to User/${safeTitle}.md`;
+            return this.pathUtils.getNotePath(event.content, 'nostr/Replies to User');
         }
 
         // Default to original notes directory for other content
-        return `${this.settings.notesDirectory}/${safeTitle}.md`;
+        return this.pathUtils.getNotePath(event.content, this.settings.notesDirectory);
     }
 
     private getPollPath(poll: PollFrontmatter): string {
-        const safeTitle = TextProcessor.sanitizeFilename(poll.question);
-        // Remove any trailing dashes and spaces
-        const cleanTitle = safeTitle.replace(/[-\s]+$/, '');
-        return `${this.settings.polls.directory}/${cleanTitle}.md`;
+        return this.pathUtils.getPollPath(poll.question, this.settings.polls.directory);
     }
 
     private convertToTagReferences(references: ChronologicalMetadata['references']): TagReference[] {
         if (!references) return [];
-        return references.map(ref => ({
+        return references.map((ref: TagReference) => ({
             ...ref,
             type: ref.type as TagType
         }));
@@ -96,9 +93,9 @@ export class FileService implements LinkResolver {
     async saveNote(event: NostrEvent, metadata?: ChronologicalMetadata): Promise<void> {
         await this.directoryManager.ensureDirectories();
 
-        const safeTitle = TextProcessor.sanitizeFilename(
-            TextProcessor.extractFirstSentence(event.content)
-        );
+        const title = ContentProcessor.extractTitle(event.content);
+        // Get just the filename without directory or extension
+        const safeTitle = this.pathUtils.getPath(title, '', { extractTitle: false }).replace(/^.*[/\\](.+?)\.md$/, '$1');
         this.noteCacheManager.cacheTitle(event.id, safeTitle);
         
         const filePath = this.getNotePath(event);
@@ -107,11 +104,11 @@ export class FileService implements LinkResolver {
         // Extract tags
         const nostrTopics = new Set(
             event.tags
-                .filter(tag => tag[0] === 't')
-                .map(tag => tag[1]?.toLowerCase())
-                .filter(Boolean)
+                .filter((tag: string[]) => tag[0] === 't')
+                .map((tag: string[]) => tag[1]?.toLowerCase())
+                .filter((tag: string | undefined): tag is string => Boolean(tag))
         );
-        const inlineHashtags = new Set(TextProcessor.extractHashtags(event.content));
+        const inlineHashtags = new Set(ContentProcessor.extractHashtags(event.content));
         
         // Get existing content and frontmatter
         const file = this.app.vault.getAbstractFileByPath(filePath);
@@ -158,20 +155,20 @@ export class FileService implements LinkResolver {
 
             if (grouped[TagType.MENTION]?.length) {
                 frontmatterData.mentions = grouped[TagType.MENTION]
-                    .map(ref => ref.targetId)
-                    .filter((id): id is string => id !== undefined);
+                    .map((ref: TagReference) => ref.targetId)
+                    .filter((id: string | undefined): id is string => id !== undefined);
             }
 
             if (grouped[TagType.TOPIC]?.length) {
                 frontmatterData.topics = grouped[TagType.TOPIC]
-                    .map(ref => ref.targetId)
-                    .filter((id): id is string => id !== undefined);
+                    .map((ref: TagReference) => ref.targetId)
+                    .filter((id: string | undefined): id is string => id !== undefined);
             }
         }
 
         // Format content sections
         const sections = [
-            `# ${safeTitle}`,
+            `# ${title}`,
             event.content,
             metadata?.previousNote || metadata?.nextNote 
                 ? await this.noteFormatter.formatChronologicalLinks(metadata)
@@ -182,7 +179,7 @@ export class FileService implements LinkResolver {
             metadata?.referencedBy?.length 
                 ? await this.noteFormatter.formatBacklinks(this.convertToTagReferences(metadata.referencedBy))
                 : ''
-        ].filter(section => section !== '');
+        ].filter((section: string) => section !== '');
 
         // Create full content
         const fullContent = [
@@ -250,18 +247,18 @@ export class FileService implements LinkResolver {
         }
 
         // Cache the poll title
-        const safeTitle = TextProcessor.sanitizeFilename(poll.question);
+        const safeTitle = this.pathUtils.getPath(poll.question, '', { extractTitle: false }).replace(/^.*[/\\](.+?)\.md$/, '$1');
         this.noteCacheManager.cacheTitle(poll.id, safeTitle);
     }
 
     async saveProfile(profile: ProfileData): Promise<void> {
         await this.directoryManager.ensureDirectories();
 
-        const fileName = this.profileFormatter.getFileName(profile);
-        // If this is the user's profile, save it in User Profile directory
+        // Generate display name and path
+        const displayName = profile.displayName || profile.name || `Nostr User ${profile.pubkey.slice(0, 8)}`;
         const filePath = this.isUserContent(profile.pubkey)
-            ? `nostr/User Profile/${fileName}`
-            : `${this.settings.profilesDirectory}/${fileName}`;
+            ? this.pathUtils.getPath(displayName, 'nostr/User Profile')
+            : this.pathUtils.getPath(displayName, this.settings.profilesDirectory);
         const file = this.app.vault.getAbstractFileByPath(filePath);
 
         const existingFrontmatter = file instanceof TFile
@@ -275,8 +272,6 @@ export class FileService implements LinkResolver {
             nip05: profile.nip05,
             picture: profile.picture
         }, existingFrontmatter);
-
-        const displayName = profile.displayName || profile.name || `Nostr User ${profile.pubkey.slice(0, 8)}`;
         const content = [
             '---',
             FrontmatterUtil.formatFrontmatter(frontmatterData),

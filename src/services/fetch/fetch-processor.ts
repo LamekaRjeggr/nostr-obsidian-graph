@@ -50,7 +50,8 @@ export class FetchProcessor {
             this.temporalStore,
             this.referenceStore,
             this.reactionProcessor,
-            this.noteCacheManager
+            this.noteCacheManager,
+            this.app
         ));
         this.streamHandler.registerHandler(this.reactionProcessor);
 

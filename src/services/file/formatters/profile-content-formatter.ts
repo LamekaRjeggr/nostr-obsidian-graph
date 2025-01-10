@@ -1,5 +1,5 @@
 import { ProfileData } from '../../../types';
-import { TextProcessor } from '../utils/text-processor';
+import { ContentProcessor } from '../utils/text-processor';
 import { YAMLProcessor } from '../utils/yaml-processor';
 
 export interface ProfileFormatOptions {
@@ -66,7 +66,7 @@ export class ProfileContentFormatter {
 
     private formatBody(profile: ProfileData): string {
         if (!profile.about) return '';
-        return TextProcessor.cleanContent(profile.about);
+        return ContentProcessor.cleanContent(profile.about);
     }
 
     private formatReferences(): string {
