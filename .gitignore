@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build output
+dist/
+main.js
+*.js.map
+styles.css
+*.css.map
+
+# TypeScript
+*.tsbuildinfo
+*.d.ts
+
+# Development
+.vscode/
+.idea/
+*.log
+.hotreload
+coverage/
+.nyc_output/
+
+# Operating System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Obsidian
+data.json
+.obsidian/
+
+# Environment
+.env
+.env.*
+*.local
+
+# Plugin specific
+.backup/
+temp/
+.cache/

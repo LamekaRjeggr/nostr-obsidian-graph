@@ -1,0 +1,11 @@
+{
+	"id": "nostr-obsidian-graph",
+	"name": "Nostr Graph",
+	"version": "0.86.4",
+	"minAppVersion": "1.1.0",
+	"description": "Nostr integration for Obsidian with experimental features including NIP-1068 polls",
+	"author": "",
+	"authorUrl": "",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
