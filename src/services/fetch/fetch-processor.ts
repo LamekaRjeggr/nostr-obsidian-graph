@@ -47,7 +47,8 @@ export class FetchProcessor {
             this.reactionProcessor,
             this.noteCacheManager,
             this.app,
-            this.fileService
+            this.fileService,
+            this.referenceProcessor
         ));
         this.streamHandler.registerHandler(this.reactionProcessor);
 

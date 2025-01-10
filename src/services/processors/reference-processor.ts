@@ -159,6 +159,9 @@ export class ReferenceProcessor implements IReference {
         // Get tag-based references using TagProcessor
         const tagResults = this.tagProcessor.process(event);
 
+        // Add mentions to the mentions set
+        tagResults.mentions.forEach(pubkey => this.addMention(pubkey));
+
         // Process Obsidian links from content
         const obsidianRefs = await this.processObsidianRefs(event.content);
 

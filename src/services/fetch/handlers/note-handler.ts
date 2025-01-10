@@ -24,11 +24,12 @@ export class NoteEventHandler extends BaseEventHandler {
         private reactionProcessor: ReactionProcessor,
         private noteCacheManager: NoteCacheManager,
         private app: App,
-        private fileService: FileService
+        private fileService: FileService,
+        referenceProcessor: ReferenceProcessor
     ) {
         super(eventService, EventKinds.NOTE, ProcessingPriority.NOTE);
         this.tagProcessor = new TagProcessor();
-        this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
+        this.referenceProcessor = referenceProcessor;
         this.temporalProcessor = new TemporalProcessor(app);
         this.pathUtils = new PathUtils(app);
     }

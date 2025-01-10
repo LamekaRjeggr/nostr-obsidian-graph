@@ -159,13 +159,10 @@ export default class NostrPlugin extends Plugin {
             this.app
         );
 
-        // Create reference processor
-        const referenceProcessor = new ReferenceProcessor(this.app, this.app.metadataCache);
-
         // Initialize node fetch handler
         const nodeFetchHandler = new NodeFetchHandler(
             this.eventService,
-            referenceProcessor,
+            this.fetchService.getReferenceStore(),
             this.unifiedFetchProcessor,
             this.app,
             {
@@ -267,8 +264,7 @@ export default class NostrPlugin extends Plugin {
             id: 'fetch-mentioned-profiles',
             name: 'Fetch Mentioned Profiles',
             callback: async () => {
-                const referenceProcessor = new ReferenceProcessor(this.app, this.app.metadataCache);
-                const mentions = referenceProcessor.getAllMentions();
+                const mentions = this.fetchService.getReferenceStore().getAllMentions();
                 if (mentions.length === 0) return;
                     
                 await this.mentionedProfileFetcher.fetchMentionedProfiles(mentions);
