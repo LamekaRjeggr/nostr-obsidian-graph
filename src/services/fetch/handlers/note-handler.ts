@@ -6,7 +6,7 @@ import { ReferenceProcessor } from '../../processors/reference-processor';
 import { App } from 'obsidian';
 
 import { TemporalProcessor } from '../../processors/temporal-processor';
-import { ReactionProcessor } from '../../reactions/reaction-processor';
+import { ReactionProcessor } from '../../processors/reaction-processor';
 import { NoteCacheManager } from '../../file/cache/note-cache-manager';
 import { ContentProcessor } from '../../file/utils/text-processor';
 import { PathUtils } from '../../file/utils/path-utils';
@@ -16,7 +16,6 @@ export class NoteEventHandler extends BaseEventHandler {
     private tagProcessor: TagProcessor;
     private referenceProcessor: ReferenceProcessor;
     private pathUtils: PathUtils;
-
     private temporalProcessor: TemporalProcessor;
 
     constructor(

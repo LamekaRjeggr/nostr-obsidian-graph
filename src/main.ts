@@ -14,7 +14,6 @@ import { FetchSettingsModal } from './views/modals/fetch-settings-modal';
 import { MentionedProfileFetcher } from './services/fetch/mentioned-profile-fetcher';
 import { MentionedNoteFetcher } from './services/fetch/mentioned-note-fetcher';
 import { CurrentFileService } from './services/core/current-file-service';
-import { ReactionProcessor } from './services/reactions/reaction-processor';
 import { NoteCacheManager } from './services/file/cache/note-cache-manager';
 import { PollService } from './experimental/polls/poll-service';
 import { UnifiedFetchProcessor } from './services/fetch/unified-fetch-processor';
@@ -26,6 +25,7 @@ import { NostrEventType } from './experimental/event-bus/types';
 import { ContactGraphService } from './services/contacts/contact-graph-service';
 import { ReferenceProcessor } from './services/processors/reference-processor';
 import { NoteEventHandler } from './services/fetch/handlers/note-handler';
+import { ReactionProcessor } from './services/processors/reaction-processor';
 
 const DEFAULT_SETTINGS: NostrSettings = {
     npub: '',
@@ -158,6 +158,17 @@ export default class NostrPlugin extends Plugin {
             this.fileService,
             this.app
         );
+
+        // Initialize reaction processor
+        this.reactionProcessor = new ReactionProcessor(
+            this.eventService,
+            this.app,
+            this.fileService
+        );
+
+        // Register reaction processor with event bus
+        NostrEventBus.getInstance().subscribe(NostrEventType.REACTION, this.reactionProcessor);
+        NostrEventBus.getInstance().subscribe(NostrEventType.ZAP, this.reactionProcessor);
 
         // Initialize node fetch handler
         const nodeFetchHandler = new NodeFetchHandler(

@@ -10,17 +10,21 @@ The modular processor system provides a clean, maintainable way to handle nostr 
 ```typescript
 // src/services/processors/tag-processor.ts
 export interface TagResult {
+    // Core tag data
+    mentions: string[];      // NIP-01 p tags
     references: string[];    // NIP-01 e tags
-    root?: string;          // Thread root
-    replyTo?: string;       // Direct reply
     topics: string[];       // NIP-12 t tags
+    
+    // Thread context
+    root?: string;         // Root note in thread
+    replyTo?: string;     // Direct reply reference
+    
+    // Additional context
+    relayHints: Map<string, string>;  // tag id -> relay hint
 }
 
 export class TagProcessor {
-    process(event: Event): TagResult {
-        // Process nostr event tags
-        // Extract references, thread context, and topics
-    }
+    process(event: Event): TagResult;
 }
 ```
 
@@ -45,10 +49,6 @@ export interface ReferenceResult {
 
 export class ReferenceProcessor implements IReference {
     process(event: Event): Promise<ReferenceResult>;
-    addReference(from: string, to: string): void;
-    getOutgoingReferences(eventId: string): string[];
-    getIncomingReferences(eventId: string): string[];
-    // ... other IReference methods
 }
 ```
 
@@ -75,6 +75,65 @@ export class TemporalProcessor {
     process(event: Event): Promise<TemporalResult>;
 }
 ```
+
+### 4. Reaction Processing
+The reaction system uses a streamlined approach focused on like reactions:
+
+#### Architecture
+```typescript
+// Core Components:
+// - TagProcessor: Extract reaction targets
+// - FileService: Handle frontmatter updates
+// - EventBus: Coordinate reaction events
+
+// Flow:
+Reaction Event -> TagProcessor (extract target) 
+                  -> Batch Updates (1 second window)
+                  -> FileService (update frontmatter)
+                  -> EventBus (notify subscribers)
+```
+
+#### Integration Points
+1. TagProcessor
+   - Extracts target note IDs from e-tags
+   - Validates reaction events (kind 7)
+   - Handles relay hints for reaction routing
+
+2. FileService
+   - Manages like counts in frontmatter
+   - Handles file operations through Obsidian API
+   - Provides race condition handling
+   ```typescript
+   interface NoteMeta {
+       likes: number;
+   }
+   ```
+
+3. EventBus
+   - Coordinates reaction events
+   - Notifies subscribers of updates
+   - Handles event timeouts and errors
+
+4. Obsidian Integration
+   - Uses MetadataCache for efficient frontmatter access
+   - Leverages Vault API for file operations
+   - Batches updates for better performance
+
+#### Benefits
+1. Simplified Architecture
+   - Focused on essential functionality (likes)
+   - Uses Obsidian's native capabilities
+   - Reduces code complexity
+
+2. Better Performance
+   - Batched frontmatter updates
+   - Reduced file operations
+   - Efficient event handling
+
+3. Improved Reliability
+   - Built-in race condition handling
+   - Consistent state management
+   - Better error recovery
 
 ## Integration Points
 
@@ -115,32 +174,12 @@ export class NoteEventHandler extends BaseEventHandler {
 
 ## Next Steps
 
-### 1. Reaction Processing
-- [ ] Implement ReactionProcessor
-- [ ] Handle likes, zaps, and replies
-- [ ] Update note metadata
-
-```typescript
-export interface ReactionResult {
-    likes: number;
-    zaps: {
-        count: number;
-        amount: number;
-    };
-    replies: string[];
-}
-
-export class ReactionProcessor {
-    process(event: Event): ReactionResult;
-}
-```
-
-### 2. Testing & Documentation
+### 1. Testing & Documentation
 - [ ] Add unit tests for each processor
 - [ ] Document processor interactions
 - [ ] Create usage examples
 
-### 3. Enhanced Integration
+### 2. Enhanced Integration
 - [ ] Add processor configuration options
 - [ ] Implement processor composition
 - [ ] Add batch processing support
@@ -172,10 +211,12 @@ export class ReactionProcessor {
 - [x] Updated file service integration
 - [x] Removed deprecated ReferenceStore
 - [x] Migrated all services to use new processors
+- [x] Simplified reaction handling to focus on likes
+- [x] Implemented batched reaction updates
+- [x] Removed legacy reaction store
 
 ### In Progress
-- [ ] Reaction handling
-- [ ] Enhanced configuration options
+- [ ] Configuration options
 - [ ] Testing suite
 
 ### Future

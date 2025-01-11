@@ -7,7 +7,6 @@ export class EventService {
     private stateHandlers: ((isActive: boolean) => void)[] = [];
     private limitHandlers: ((count: number, limit: number) => void)[] = [];
     private reactionHandlers: ((event: NostrEvent) => void)[] = [];
-    private zapHandlers: ((event: NostrEvent) => void)[] = [];
 
     onNote(handler: (event: NostrEvent, metadata?: ChronologicalMetadata) => void): void {
         this.noteHandlers.push(handler);
@@ -27,10 +26,6 @@ export class EventService {
 
     onReaction(handler: (event: NostrEvent) => void): void {
         this.reactionHandlers.push(handler);
-    }
-
-    onZap(handler: (event: NostrEvent) => void): void {
-        this.zapHandlers.push(handler);
     }
 
     emitNote(event: NostrEvent, metadata?: ChronologicalMetadata): void {
@@ -75,20 +70,11 @@ export class EventService {
         }
     }
 
-    emitZap(event: NostrEvent): void {
-        try {
-            this.zapHandlers.forEach(handler => handler(event));
-        } catch (error) {
-            console.error('Error emitting zap:', error);
-        }
-    }
-
     clearHandlers(): void {
         this.noteHandlers = [];
         this.profileHandlers = [];
         this.stateHandlers = [];
         this.limitHandlers = [];
         this.reactionHandlers = [];
-        this.zapHandlers = [];
     }
 }

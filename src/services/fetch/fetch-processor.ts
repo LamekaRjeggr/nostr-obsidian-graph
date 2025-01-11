@@ -9,7 +9,7 @@ import { NoteEventHandler } from './handlers/note-handler';
 import { ContactEventHandler } from './handlers/contact-handler';
 import { BatchProcessor } from './processors/batch-processor';
 import { ReferenceProcessor } from '../processors/reference-processor';
-import { ReactionProcessor } from '../reactions/reaction-processor';
+import { ReactionProcessor } from '../processors/reaction-processor';
 import { Filter } from 'nostr-tools';
 import { App, Notice } from 'obsidian';
 import { NoteCacheManager } from '../file/cache/note-cache-manager';
@@ -37,7 +37,7 @@ export class FetchProcessor {
         
         // Initialize handlers
         this.contactHandler = new ContactEventHandler(eventService);
-        this.reactionProcessor = new ReactionProcessor(eventService, app, settings, this.noteCacheManager);
+        this.reactionProcessor = new ReactionProcessor(eventService, app, fileService);
         
         // Register handlers
         this.streamHandler.registerHandler(this.contactHandler);

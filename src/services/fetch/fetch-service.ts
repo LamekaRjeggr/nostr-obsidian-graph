@@ -10,7 +10,7 @@ import { KeyService } from '../core/key-service';
 import { EventEmitter } from '../event-emitter';
 import { ProfileManagerService } from '../profile/profile-manager-service';
 import { MentionedProfileFetcher } from './mentioned-profile-fetcher';
-import { ReactionProcessor } from '../reactions/reaction-processor';
+import { ReactionProcessor } from '../processors/reaction-processor';
 import { NoteCacheManager } from '../file/cache/note-cache-manager';
 import { PollService } from '../../experimental/polls/poll-service';
 import NostrPlugin from '../../main';
@@ -67,11 +67,11 @@ export class FetchService {
             this.plugin.fileService
         );
 
+        // Initialize reaction processor with new implementation
         this.plugin.reactionProcessor = new ReactionProcessor(
             this.plugin.eventService,
             this.plugin.app,
-            this.plugin.settings,
-            this.plugin.noteCacheManager
+            this.plugin.fileService
         );
 
         // Initialize poll service if enabled
@@ -112,14 +112,6 @@ export class FetchService {
                 await this.plugin.reactionProcessor.process(event);
             } catch (error) {
                 console.error('[NostrPlugin] Error processing reaction:', error);
-            }
-        });
-
-        this.plugin.eventService.onZap(async (event) => {
-            try {
-                await this.plugin.reactionProcessor.process(event);
-            } catch (error) {
-                console.error('[NostrPlugin] Error processing zap:', error);
             }
         });
 
