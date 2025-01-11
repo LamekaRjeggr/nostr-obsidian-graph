@@ -4,18 +4,64 @@
 
 ```
 src/
+├── core/
+│   └── interfaces/        # Core interfaces
+│       ├── IEventHandler.ts
+│       ├── IEventFetcher.ts
+│       ├── IEventValidator.ts
+│       ├── IFileManager.ts
+│       ├── IProfileManager.ts
+│       ├── IReference.ts
+│       ├── IReaction.ts
+│       └── IStreamProcessor.ts
 ├── experimental/
-│   ├── event-bus/          # Event bus system
-│   └── polls/              # Poll support
+│   ├── event-bus/        # Event bus system
+│   │   ├── event-bus.ts
+│   │   └── types.ts
+│   └── polls/           # Poll support (NIP-1068)
 ├── services/
-│   ├── core/              # Core services
+│   ├── core/           # Core services
+│   │   ├── current-file-service.ts
+│   │   ├── event-service.ts
+│   │   ├── file-service.ts
+│   │   └── relay-service.ts
 │   ├── fetch/
-│   │   ├── handlers/      # Specialized fetch handlers
-│   │   └── ...
-│   └── ...
+│   │   ├── handlers/   # Specialized fetch handlers
+│   │   │   ├── contact-handler.ts
+│   │   │   ├── hex-fetch-handler.ts
+│   │   │   ├── keyword-search-handler.ts
+│   │   │   ├── node-fetch-handler.ts
+│   │   │   ├── note-handler.ts
+│   │   │   ├── profile-handler.ts
+│   │   │   └── thread-fetch-handler.ts
+│   │   ├── processors/
+│   │   │   └── batch-processor.ts
+│   │   ├── fetch-processor.ts
+│   │   ├── fetch-service.ts
+│   │   ├── mentioned-note-fetcher.ts
+│   │   └── unified-fetch-processor.ts
+│   ├── file/
+│   │   ├── cache/
+│   │   │   └── note-cache-manager.ts
+│   │   ├── formatters/
+│   │   │   ├── note-formatter.ts
+│   │   │   └── profile-formatter.ts
+│   │   ├── system/
+│   │   │   └── directory-manager.ts
+│   │   └── utils/
+│   │       ├── path-utils.ts
+│   │       └── text-processor.ts
+│   ├── processors/
+│   │   ├── reaction-processor.ts
+│   │   ├── reference-processor.ts
+│   │   ├── tag-processor.ts
+│   │   └── temporal-processor.ts
+│   └── reactions/
+│       ├── reaction-processor.ts
+│       └── reaction-store.ts
 └── views/
-    ├── modals/            # Modal components
-    │   ├── sections/      # Modal section components
+    ├── modals/         # Modal components
+    │   ├── sections/   # Modal section components
     │   │   ├── regular-fetch-section.ts
     │   │   ├── thread-fetch-section.ts
     │   │   ├── hex-fetch-section.ts
@@ -23,7 +69,6 @@ src/
     │   ├── fetch-settings-modal.ts
     │   └── types.ts
     ├── settings-tab.ts
-    ├── hex-input-modal.ts  # Quick hex input modal
     └── support-section.ts
 ```
 
@@ -36,20 +81,43 @@ src/
 
 ### Event Bus Layer
 - **NostrEventBus**: Central event management system
-  - Handles event subscription and publishing
-  - Manages handler priorities
-  - Provides error handling and timeouts
+  - Type-safe event handling with generics
+  - Priority-based handler execution
+  - Handler timeout protection
+  - Detailed error reporting
+  - Optional logging
+  - Cleanup handling
 - **Event Types**: Structured event definitions
-  - Note events
+  - Note events (kind 1)
   - Thread events
   - Search events
   - Fetch events
+  - Poll events (kind 1068)
+  - Reaction events (kind 7)
+  - Zap events (kind 9735)
 
-### Contact Graph Layer
-- **ContactGraphService**: Manages follow relationships
-  - Caches direct follows and follows-of-follows
-  - Provides network scope filtering
-  - Supports degree-based filtering
+### Reaction System
+- **ReactionProcessor**: Handles reactions and zaps
+  - Processes kind 7 events (likes)
+  - Processes kind 9735 events (zaps)
+  - Updates frontmatter metadata
+  - Maintains reaction counts
+- **ReactionStore**: Manages reaction state
+  - Caches reaction data
+  - Provides reaction queries
+  - Handles state updates
+
+### Poll System (NIP-1068)
+- **PollService**: Manages poll operations
+  - Creates and updates polls
+  - Processes votes
+  - Maintains poll state
+  - Event bus integration
+- **Poll Features**:
+  - Single/multiple choice support
+  - Real-time vote tracking
+  - Automatic file updates
+  - State persistence
 
 ### Fetch Layer
 - **UnifiedFetchProcessor**: Central fetch operations manager
@@ -62,39 +130,11 @@ src/
 - **Specialized Handlers**:
   - HexFetchHandler: Author-specific fetches (up to 500 notes)
   - ThreadFetchHandler: Thread context fetches
-  - KeywordSearchHandler: Search operations
+  - KeywordSearchHandler: NIP-50 search operations
   - NodeFetchHandler: Context-aware content fetches
-    - Triggered via context menu
-    - Profile mode:
-      - Detects profile files by path and metadata
-      - Uses hex fetch settings for author's notes
-      - Integrated with hex fetch handler
-    - Note mode:
-      - Detects note files by path and metadata
-      - Fetches thread context and references
-      - Integrated with thread fetch handler
-    - Uses unified fetch processor for all operations
-    - Shares settings with other fetch modes
-
-## Modal Architecture
-
-### Fetch Settings Modal
-- **Base Modal**: Central container with toolbar navigation
-- **Section Components**: Modular sections for different fetch types
-  - Regular: Basic fetch settings
-  - Thread: Thread context fetching
-  - Hex: Author-specific fetching (1-500 notes)
-  - Keyword: Advanced search functionality
-- **Modal Behavior**:
-  - Auto-closes after fetch operations
-  - Preserves settings between sessions
-  - Separates settings management from fetch operations
-
-### Settings Management
-- Settings persist per section
-- No default values that could override user settings
-- Immediate saving when settings change
-- Settings maintained between sessions
+  - ContactHandler: Follow relationship management
+  - ProfileHandler: Profile data management
+  - NoteHandler: Note content management
 
 ## Event Flow
 
@@ -114,42 +154,53 @@ Request → UnifiedFetchProcessor → Relay Query → Processing → Storage
         Filters         Relays          Results    Files
 ```
 
-### Fetch Operation Flow
+### Poll Event Flow
 ```
-User Action → Settings Update → Fetch Button → Modal Close → Background Processing
-                ↓                    ↓             ↓              ↓
-           Save Settings      Initiate Fetch    Show Progress   Save Results
+Poll Event → Validation → State Check → Processing → File Update
+         ↓            ↓            ↓           ↓
+      Validate    Check State   Process    Update Poll
+      NIP-1068    & Cache      via Bus     File & State
 ```
 
-### Thread Fetch Flow
+### Reaction Flow
 ```
-Event → EventBus → ThreadFetchHandler → Context Building → Storage
-         ↓            ↓                    ↓               ↓
-      Validate    Handle Event        Build Thread    Save Notes
-                                     Structure
+Reaction → EventBus → ReactionProcessor → State Update → File Update
+    ↓          ↓             ↓               ↓             ↓
+ Validate   Route to      Process         Update       Update Note
+  Event     Handler       Reaction        Cache        Frontmatter
 ```
 
 ## Migration Status
-- Regular fetch: Working
+- Regular fetch: Working with unified processor
 - Hex fetch: Fully migrated, supports up to 500 notes
-- Thread fetch: Using legacy processor for better metadata
-- Keyword search: Working with scope options
-- Node-based fetch:
-  - Profile mode: Using legacy processor for richer metadata
-  - Note mode: Using legacy processor for complete reference tracking
+- Thread fetch: Using unified processor
+- Keyword search: Working with NIP-50 support
+- Node-based fetch: Fully migrated to unified processor
+- Reactions: Migrated to event bus
+- Polls: Using event bus system
 
 ## Future Improvements
-1. Thread Fetching:
-   - Enhance thread context building
-   - Improve metadata handling
 
-2. Data Management:
-   - ✓ Remove clear notes command
-   - Implement more granular data refresh
-   - Better cache management
+1. Event Bus Migration:
+   - ✓ Reaction handler migration
+   - ✓ Poll handler migration
+   - Complete remaining handlers
 
-3. General:
-   - Complete event bus migration
-   - Optimize relay connections
-   - Enhance error handling
-   - Improve event validation
+2. Performance:
+   - Enhanced caching system
+   - Relay connection pooling
+   - Request deduplication
+   - Batch processing optimization
+
+3. Features:
+   - Enhanced thread context
+   - Advanced search capabilities
+   - Profile analytics
+   - Poll visualization
+   - Interactive graph views
+
+4. Architecture:
+   - Complete modular processor system
+   - Enhanced error handling
+   - Improved state management
+   - Better type safety
