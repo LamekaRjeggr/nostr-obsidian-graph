@@ -1,4 +1,4 @@
-import { NostrEvent, TagType, ChronologicalMetadata } from '../../types';
+import { NostrEvent, TagType, ChronologicalMetadata, FetchOptions, EnhancedMetadataOptions } from '../../types';
 import { TagProcessor } from '../processors/tag-processor';
 import { ReferenceProcessor } from '../processors/reference-processor';
 import { RelayService } from '../core/relay-service';
@@ -15,26 +15,6 @@ import { ContentProcessor } from '../file/utils/text-processor';
 import { PathUtils } from '../file/utils/path-utils';
 import { ReactionProcessor } from '../processors/reaction-processor';
 import { EventService } from '../core/event-service';
-
-export interface EnhancedMetadataOptions {
-    temporal?: boolean;     // Include chronological ordering
-    reactions?: boolean;    // Process reactions
-    titles?: boolean;       // Cache titles
-}
-
-export interface FetchOptions {
-    kinds: number[];
-    limit: number;
-    filter?: (event: NostrEvent) => boolean;
-    since?: number;
-    until?: number;
-    author?: string;
-    ids?: string[];
-    tags?: [string, string][];
-    search?: string[];
-    skipSave?: boolean;
-    enhanced?: EnhancedMetadataOptions;  // Optional enhanced features
-}
 
 export class UnifiedFetchProcessor {
     private nodeFetchHandler: NodeFetchHandler | null = null;
@@ -65,6 +45,21 @@ export class UnifiedFetchProcessor {
 
     setNodeFetchHandler(handler: NodeFetchHandler) {
         this.nodeFetchHandler = handler;
+    }
+
+    private async fetchContacts(hex: string): Promise<string[]> {
+        const contactFilter = {
+            authors: [hex],
+            kinds: [EventKinds.CONTACT],
+            since: 0
+        };
+        
+        const events = await this.relayService.subscribe([contactFilter]);
+        return events.flatMap(event => 
+            event.tags
+                .filter(tag => tag[0] === 'p')
+                .map(tag => tag[1])
+        );
     }
 
     private async processEnhancedMetadata(
@@ -102,12 +97,33 @@ export class UnifiedFetchProcessor {
                 throw new Error('Invalid hex key format');
             }
 
+            // Handle contacts if requested
+            let authors: string[] | undefined;
+            if (options.contacts?.include && options.author) {
+                const contacts = await this.fetchContacts(options.author);
+                
+                if (options.contacts.fetchProfiles) {
+                    await this.fetchWithOptions({
+                        kinds: [EventKinds.METADATA],
+                        limit: contacts.length,
+                        authors: contacts,
+                        skipSave: !options.contacts.linkInGraph
+                    });
+                }
+                
+                authors = [options.author, ...contacts];
+            } else if (options.authors) {
+                authors = options.authors;
+            } else if (options.author) {
+                authors = [options.author];
+            }
+
             const filter = {
                 kinds: options.kinds,
                 limit: options.limit,
                 since: options.since,
                 until: options.until,
-                authors: options.author ? [options.author] : undefined,
+                authors: authors,
                 ids: options.ids,
                 '#e': options.tags?.filter(t => t[0] === 'e').map(t => t[1]),
                 '#p': options.tags?.filter(t => t[0] === 'p').map(t => t[1]),
@@ -176,12 +192,17 @@ export class UnifiedFetchProcessor {
                 throw new Error('No nostr event ID found in file metadata');
             }
 
-            // For profiles (kind 0), fetch author's notes
+            // For profiles (kind 0), fetch author's notes with contacts
             if (metadata.kind === 0) {
                 return this.fetchWithOptions({
                     kinds: [EventKinds.NOTE],
                     limit: limit,
-                    author: metadata.id
+                    author: metadata.id,
+                    contacts: {
+                        include: true,
+                        fetchProfiles: true,
+                        linkInGraph: true
+                    }
                 });
             }
 

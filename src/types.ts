@@ -96,10 +96,24 @@ export interface ThreadContext {
     replies?: string[];
 }
 
+export interface ContactOptions {
+    include: boolean;           // Include contact fetching
+    fetchProfiles: boolean;     // Fetch contact profiles
+    linkInGraph: boolean;       // Create bidirectional links
+}
+
+export interface EnhancedMetadataOptions {
+    temporal?: boolean;     // Include chronological ordering
+    reactions?: boolean;    // Process reactions
+    titles?: boolean;       // Cache titles
+}
+
 export interface EventMetadata {
     references: Reference[];
     referencedBy: Reference[];
     threadContext?: ThreadContext;
+    contacts?: string[];        // Contact pubkeys
+    contactProfiles?: string[]; // Contact profile references
 }
 
 export interface NoteFile {
@@ -142,4 +156,20 @@ export interface GroupedReferences {
     [TagType.REPLY]?: TagReference[];
     [TagType.MENTION]?: TagReference[];
     [TagType.TOPIC]?: TagReference[];
+}
+
+export interface FetchOptions {
+    kinds: number[];
+    limit: number;
+    filter?: (event: NostrEvent) => boolean;
+    since?: number;
+    until?: number;
+    author?: string;
+    authors?: string[];        // Multiple authors (e.g. for contacts)
+    ids?: string[];
+    tags?: [string, string][];
+    search?: string[];
+    skipSave?: boolean;
+    enhanced?: EnhancedMetadataOptions;  // Optional enhanced features
+    contacts?: ContactOptions;  // Optional contact handling
 }
