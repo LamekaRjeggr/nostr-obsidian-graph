@@ -1,4 +1,4 @@
-import { NostrEvent, TagType, ChronologicalMetadata, FetchOptions, EnhancedMetadataOptions } from '../../types';
+import { NostrEvent, TagType, FetchOptions, EnhancedMetadataOptions } from '../../types';
 import { TagProcessor } from '../processors/tag-processor';
 import { ReferenceProcessor } from '../processors/reference-processor';
 import { RelayService } from '../core/relay-service';
@@ -9,7 +9,6 @@ import { FileService } from '../core/file-service';
 import { EventKinds } from '../core/base-event-handler';
 import { ThreadContext } from '../../experimental/event-bus/types';
 import { NodeFetchHandler } from './handlers/node-fetch-handler';
-import { TemporalProcessor } from '../processors/temporal-processor';
 import { NoteCacheManager } from '../file/cache/note-cache-manager';
 import { ContentProcessor } from '../file/utils/text-processor';
 import { PathUtils } from '../file/utils/path-utils';
@@ -20,7 +19,6 @@ export class UnifiedFetchProcessor {
     private nodeFetchHandler: NodeFetchHandler | null = null;
     private tagProcessor: TagProcessor;
     private referenceProcessor: ReferenceProcessor;
-    private temporalProcessor: TemporalProcessor;
     private noteCacheManager: NoteCacheManager;
     private pathUtils: PathUtils;
     private reactionProcessor: ReactionProcessor;
@@ -36,8 +34,7 @@ export class UnifiedFetchProcessor {
         this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
         this.eventService = new EventService();
         
-        // Initialize enhanced processors (lazy loaded)
-        this.temporalProcessor = new TemporalProcessor(app);
+        // Initialize processors
         this.noteCacheManager = new NoteCacheManager();
         this.pathUtils = new PathUtils(app);
         this.reactionProcessor = new ReactionProcessor(this.eventService, app, fileService);
@@ -68,17 +65,6 @@ export class UnifiedFetchProcessor {
         baseMetadata: any
     ): Promise<any> {
         let metadata = { ...baseMetadata };
-
-        // Add temporal metadata if requested
-        if (options.temporal) {
-            const temporalResults = await this.temporalProcessor.process(event);
-            metadata = {
-                ...metadata,
-                previousNote: temporalResults.chronological.previousEvent,
-                nextNote: temporalResults.chronological.nextEvent,
-                ...temporalResults.metadata
-            };
-        }
 
         // Cache title if requested
         if (options.titles) {
@@ -143,13 +129,36 @@ export class UnifiedFetchProcessor {
                 for (const event of filteredEvents) {
                     const refResults = await this.referenceProcessor.process(event);
                     
-                    // Build base metadata
+                    // Process tags to determine reference types
+                    const tagResults = this.tagProcessor.process(event);
+                    
+                    // Build base metadata using tag processing results
                     let metadata = {
-                        references: refResults.nostr.outgoing.map((id: string) => ({
-                            targetId: id,
-                            type: TagType.MENTION
-                        })),
-                        referencedBy: refResults.nostr.incoming.map((id: string) => ({
+                        references: [
+                            // Root reference
+                            ...(tagResults.root ? [{
+                                targetId: tagResults.root,
+                                type: TagType.ROOT,
+                                marker: 'root'
+                            }] : []),
+                            // Reply reference
+                            ...(tagResults.replyTo ? [{
+                                targetId: tagResults.replyTo,
+                                type: TagType.REPLY,
+                                marker: 'reply'
+                            }] : []),
+                            // Other references
+                            ...tagResults.references.map(id => ({
+                                targetId: id,
+                                type: TagType.MENTION
+                            })),
+                            // Mentions
+                            ...tagResults.mentions.map(id => ({
+                                targetId: id,
+                                type: TagType.MENTION
+                            }))
+                        ],
+                        referencedBy: refResults.nostr.incoming.map(id => ({
                             targetId: id,
                             type: TagType.MENTION
                         }))
