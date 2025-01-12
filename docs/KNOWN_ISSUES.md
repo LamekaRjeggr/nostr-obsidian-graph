@@ -23,12 +23,18 @@ Previous issue with chronological linking has been resolved:
 
 ## Current Issues
 
-1. Cache Management
+1. Thread Fetching
+   - Vault-wide thread fetch is not functional
+   - Single note thread fetch works correctly
+   - Profile-based thread fetch works correctly
+   - Need to investigate vault-wide reference scanning
+
+2. Cache Management
    - Need better cache invalidation strategy
    - Memory usage optimization needed
    - Cache persistence between sessions
 
-2. Performance
+3. Performance
    - Large thread fetches can be slow
    - Profile fetching could be optimized
    - Batch processing improvements needed
