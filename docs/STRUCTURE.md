@@ -54,8 +54,7 @@ src/
 │   ├── processors/
 │   │   ├── reaction-processor.ts
 │   │   ├── reference-processor.ts
-│   │   ├── tag-processor.ts
-│   │   └── temporal-processor.ts
+│   │   └── tag-processor.ts
 │   └── reactions/
 │       ├── reaction-processor.ts
 │       └── reaction-store.ts
@@ -73,6 +72,17 @@ src/
 ```
 
 ## Service Architecture
+
+### Note Relationships
+- **Tag-based System**: Relationships between notes are based on nostr tags
+  - Root references: 'e' tags with 'root' marker
+  - Reply references: 'e' tags with 'reply' marker
+  - Mentions: Other 'e' tags and 'p' tags
+  - Topics: 't' tags
+- **Reference Processing**:
+  - TagProcessor: Extracts and categorizes tags
+  - ReferenceProcessor: Manages bi-directional references
+  - Metadata: Stores references in note frontmatter
 
 ### Core Layer
 - **Interfaces**: Define contracts for validators, managers, and handlers

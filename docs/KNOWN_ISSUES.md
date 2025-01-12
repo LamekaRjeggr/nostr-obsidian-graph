@@ -1,25 +1,34 @@
 # Known Issues
 
-## Chronological Links
+## ✓ Note Relationships (Resolved)
 
-The temporal processor currently links notes based on timestamps rather than nostr tags:
+Previous issue with chronological linking has been resolved:
 
-1. Current Implementation
-   - Notes are ordered purely by created_at timestamp
-   - Previous/Next links are created based on this chronological order
-   - No consideration of thread relationships from nostr tags
+1. Previous Implementation (Resolved)
+   - ~~Notes were ordered purely by created_at timestamp~~
+   - ~~Previous/Next links were created based on chronological order~~
+   - ~~No consideration of thread relationships from nostr tags~~
 
-2. Desired Behavior
-   - Should use 'e' tags with 'root' and 'reply' markers to build thread structure
-   - Only fall back to timestamp ordering if no thread tags exist
-   - Respect actual conversation flow in nostr
+2. Current Implementation
+   - Uses 'e' tags with 'root' and 'reply' markers to build thread structure
+   - Properly handles thread relationships through TagProcessor
+   - Maintains accurate conversation flow based on nostr protocol
+   - Preserves timestamps for display purposes only
 
-3. Impact
-   - Thread context may be lost
-   - Replies might not be properly linked to parent posts
-   - Chronological view may not match actual conversation flow
+3. Benefits
+   - Thread context is properly maintained
+   - Replies are correctly linked to parent posts
+   - Conversation flow matches nostr's design
+   - Simpler, more accurate relationship model
 
-4. Future Improvements
-   - Update TemporalProcessor to check for thread tags
-   - Implement proper thread structure building
-   - Add fallback to timestamp ordering only when needed
+## Current Issues
+
+1. Cache Management
+   - Need better cache invalidation strategy
+   - Memory usage optimization needed
+   - Cache persistence between sessions
+
+2. Performance
+   - Large thread fetches can be slow
+   - Profile fetching could be optimized
+   - Batch processing improvements needed

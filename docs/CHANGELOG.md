@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.86.8] - 2024-12-28
+### Changed
+- Removed chronological linking in favor of pure tag-based relationships
+- Removed TemporalProcessor while keeping TemporalUtils for timestamp formatting
+- Updated UnifiedFetchProcessor to use proper tag types from TagProcessor
+- Improved thread context handling with better tag marker support
+- Enhanced documentation to reflect tag-based architecture
+
+### Fixed
+- Thread links now persist correctly using nostr tag markers
+- More accurate relationship types based on tag markers (root, reply, mention)
+- Simplified metadata structure by removing chronological fields
+
 ## [0.86.7] - 2024-12-27
 ### Changed
 - Migrated from ReferenceStore to ReferenceProcessor for better modularity

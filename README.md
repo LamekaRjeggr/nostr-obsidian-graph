@@ -13,6 +13,11 @@ A comprehensive Nostr integration for Obsidian, enabling you to fetch, organize,
   - Node-based fetch: Context-aware fetch from right-click menu
 
 ### Content Organization
+- Tag-based relationship system
+  - Thread relationships based on nostr 'e' tags with markers
+  - Root and reply references preserved from nostr protocol
+  - Mentions tracked through 'p' tags and unmarked 'e' tags
+  - Topics from 't' tags
 - Smart profile linking system
   - Link to profiles via both pubkey and display name
   - Automatic bi-directional linking
@@ -23,6 +28,10 @@ A comprehensive Nostr integration for Obsidian, enabling you to fetch, organize,
   - Clean file organization
 
 ### Enhanced Features
+- Thread Context
+  - Accurate thread relationships from nostr tags
+  - Root and reply markers preserved
+  - Complete conversation context
 - Reaction tracking (kind 7 events)
 - Poll Support (NIP-1068)
   - Single and multiple choice polls
@@ -36,6 +45,10 @@ A comprehensive Nostr integration for Obsidian, enabling you to fetch, organize,
 ## Architecture
 
 ### Core Layer
+- **Tag Processing**: Accurate relationship handling through nostr tags
+  - Root and reply markers for thread structure
+  - Mention detection from 'e' and 'p' tags
+  - Topic extraction from 't' tags
 - **Interfaces**: Define contracts for validators, managers, and handlers
 - **Handlers**: Process different types of events with specialized components
 - **Services**: Core functionality like relay connections and file operations
@@ -136,8 +149,8 @@ Right-click on any nostr file to access:
    - Advanced filters
 
 3. Thread Fetching
-   - Enhanced thread context building
-   - Improved metadata handling
+   - ✓ Enhanced thread context through tag markers
+   - ✓ Accurate relationship preservation
    - Quote repost support
 
 ### Performance
