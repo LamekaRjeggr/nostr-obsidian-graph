@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.86.9] - 2024-12-29
+### Added
+- Reference-based thread fetching system
+- Single note thread fetch functionality
+- Profile-based thread fetch functionality
+- ReferenceProcessor integration for efficient reference tracking
+
+### Known Issues
+- Vault-wide thread fetch not yet functional
+- Need to investigate vault-wide reference scanning
+
 ## [0.86.8] - 2024-12-28
 ### Changed
 - Removed chronological linking in favor of pure tag-based relationships

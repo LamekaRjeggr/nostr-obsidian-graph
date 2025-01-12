@@ -380,6 +380,33 @@ export class FileService implements LinkResolver {
         return this.directoryManager.ensureDirectories();
     }
 
+    // Public methods for directory operations
+    async getNotesDirectories(): Promise<string[]> {
+        return [
+            this.settings.directories.main,
+            this.settings.directories.replies
+        ].filter((dir): dir is string => typeof dir === 'string');
+    }
+
+    async listFilesInDirectory(directory: string): Promise<string[]> {
+        return this.directoryManager.listFiles(directory);
+    }
+
+    async hasNote(eventId: string): Promise<boolean> {
+        // Check all nostr directories for the note
+        const directories = await this.getNotesDirectories();
+        for (const dir of directories) {
+            const files = await this.listFilesInDirectory(dir);
+            for (const filePath of files) {
+                const metadata = await this.getNostrMetadata(filePath);
+                if (metadata?.id === eventId) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     async getNostrMetadata(filePath: string): Promise<NoteMeta | null> {
         console.log('Getting metadata for file:', filePath);
         

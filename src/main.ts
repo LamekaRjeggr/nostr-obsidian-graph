@@ -26,6 +26,7 @@ import { ContactGraphService } from './services/contacts/contact-graph-service';
 import { ReferenceProcessor } from './services/processors/reference-processor';
 import { NoteEventHandler } from './services/fetch/handlers/note-handler';
 import { ReactionProcessor } from './services/processors/reaction-processor';
+import { ThreadFetchService } from './services/fetch/thread-fetch-service';
 
 const DEFAULT_SETTINGS: NostrSettings = {
     npub: '',
@@ -76,6 +77,7 @@ export default class NostrPlugin extends Plugin {
     unifiedFetchProcessor: UnifiedFetchProcessor;
     contactGraphService: ContactGraphService;
     private updateInterval: NodeJS.Timeout | null = null;
+    threadFetchService: ThreadFetchService;
 
     private async processNodeContent(filePath: string): Promise<void> {
         try {
@@ -156,6 +158,17 @@ export default class NostrPlugin extends Plugin {
             this.relayService,
             NostrEventBus.getInstance(),
             this.fileService,
+            this.app
+        );
+
+        // Create reference processor
+        const referenceProcessor = new ReferenceProcessor(this.app, this.app.metadataCache);
+
+        // Initialize thread fetch service
+        this.threadFetchService = new ThreadFetchService(
+            this.unifiedFetchProcessor,
+            this.fileService,
+            referenceProcessor,
             this.app
         );
 
@@ -279,6 +292,67 @@ export default class NostrPlugin extends Plugin {
                 if (mentions.length === 0) return;
                     
                 await this.mentionedProfileFetcher.fetchMentionedProfiles(mentions);
+            }
+        });
+
+        // Add thread fetch commands
+        this.addCommand({
+            id: 'fetch-thread',
+            name: 'Fetch Thread for Current Note',
+            checkCallback: (checking: boolean) => {
+                const file = this.app.workspace.getActiveFile();
+                if (!file || !file.path.startsWith('nostr/')) {
+                    return false;
+                }
+                
+                if (!checking) {
+                    this.fileService.getNostrMetadata(file.path).then(metadata => {
+                        if (metadata?.id) {
+                            this.threadFetchService.fetchSingleThread(metadata.id);
+                        } else {
+                            new Notice('No nostr event ID found in file metadata');
+                        }
+                    });
+                }
+                
+                return true;
+            }
+        });
+
+        this.addCommand({
+            id: 'fetch-author-threads',
+            name: 'Fetch All Threads for Current Profile',
+            checkCallback: (checking: boolean) => {
+                const file = this.app.workspace.getActiveFile();
+                if (!file || !file.path.startsWith(this.settings.profilesDirectory)) {
+                    return false;
+                }
+                
+                if (!checking) {
+                    this.fileService.getNostrMetadata(file.path).then(metadata => {
+                        if (metadata?.id) {
+                            this.threadFetchService.fetchAuthorThreads(metadata.id);
+                        } else {
+                            new Notice('No nostr pubkey found in profile metadata');
+                        }
+                    });
+                }
+                
+                return true;
+            }
+        });
+
+        // Add vault-wide thread fetch command
+        this.addCommand({
+            id: 'fetch-vault-threads',
+            name: 'Fetch All Threads in Vault',
+            callback: async () => {
+                const proceed = confirm('This will fetch threads for all notes in the vault. Continue?');
+                if (proceed) {
+                    await this.threadFetchService.fetchVaultThreads(
+                        this.settings.batchSize
+                    );
+                }
             }
         });
 

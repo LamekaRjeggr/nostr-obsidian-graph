@@ -170,3 +170,26 @@ export interface FetchOptions {
     enhanced?: EnhancedMetadataOptions;  // Optional enhanced features
     contacts?: ContactOptions;  // Optional contact handling
 }
+
+// New types for thread fetching
+export enum ThreadFetchMode {
+    SINGLE = 'single',
+    AUTHOR = 'author',
+    VAULT = 'vault'
+}
+
+export interface ThreadFetchOptions {
+    mode: ThreadFetchMode;
+    eventId?: string;          // For single mode
+    authorId?: string;         // For author mode
+    limit?: number;            // Max number of notes to process
+    batchSize?: number;        // Batch size for processing
+    includeContext?: boolean;  // Include root/parent notes
+}
+
+export interface ThreadFetchProgress {
+    total: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+}
