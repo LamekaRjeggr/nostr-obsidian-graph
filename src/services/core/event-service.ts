@@ -1,14 +1,14 @@
-import { NostrEvent, ChronologicalMetadata } from '../../types';
+import { NostrEvent, NoteMetadata } from '../../types';
 import { Notice } from 'obsidian';
 
 export class EventService {
-    private noteHandlers: ((event: NostrEvent, metadata?: ChronologicalMetadata) => void)[] = [];
+    private noteHandlers: ((event: NostrEvent, metadata?: NoteMetadata) => void)[] = [];
     private profileHandlers: ((event: NostrEvent) => void)[] = [];
     private stateHandlers: ((isActive: boolean) => void)[] = [];
     private limitHandlers: ((count: number, limit: number) => void)[] = [];
     private reactionHandlers: ((event: NostrEvent) => void)[] = [];
 
-    onNote(handler: (event: NostrEvent, metadata?: ChronologicalMetadata) => void): void {
+    onNote(handler: (event: NostrEvent, metadata?: NoteMetadata) => void): void {
         this.noteHandlers.push(handler);
     }
 
@@ -28,7 +28,7 @@ export class EventService {
         this.reactionHandlers.push(handler);
     }
 
-    emitNote(event: NostrEvent, metadata?: ChronologicalMetadata): void {
+    emitNote(event: NostrEvent, metadata?: NoteMetadata): void {
         try {
             this.noteHandlers.forEach(handler => handler(event, metadata));
         } catch (error) {

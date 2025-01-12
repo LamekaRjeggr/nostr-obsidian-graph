@@ -1,5 +1,5 @@
 import { Vault, TFile } from 'obsidian';
-import { NostrEvent, NostrSettings, ProfileData, ChronologicalMetadata, TagReference, TagType, PollFrontmatter, GroupedReferences } from '../../types';
+import { NostrEvent, NostrSettings, ProfileData, NoteMetadata, TagReference, TagType, PollFrontmatter, GroupedReferences } from '../../types';
 import { NoteCacheManager } from '../file/cache/note-cache-manager';
 import { NoteFormatter, LinkResolver } from '../file/formatters/note-formatter';
 import { ProfileFormatter } from '../file/formatters/profile-formatter';
@@ -82,7 +82,7 @@ export class FileService implements LinkResolver {
         return this.pathUtils.getPollPath(poll.question, this.settings.polls.directory);
     }
 
-    private convertToTagReferences(references: ChronologicalMetadata['references']): TagReference[] {
+    private convertToTagReferences(references: NoteMetadata['references']): TagReference[] {
         if (!references) return [];
         return references.map((ref: TagReference) => ({
             ...ref,
@@ -90,7 +90,7 @@ export class FileService implements LinkResolver {
         }));
     }
 
-    async saveNote(event: NostrEvent, metadata?: ChronologicalMetadata): Promise<void> {
+    async saveNote(event: NostrEvent, metadata?: NoteMetadata): Promise<void> {
         await this.directoryManager.ensureDirectories();
 
         const title = ContentProcessor.extractTitle(event.content);
@@ -170,9 +170,6 @@ export class FileService implements LinkResolver {
         const sections = [
             `# ${title}`,
             event.content,
-            metadata?.previousNote || metadata?.nextNote 
-                ? await this.noteFormatter.formatChronologicalLinks(metadata)
-                : '',
             metadata?.references?.length 
                 ? await this.noteFormatter.formatReferences(this.convertToTagReferences(metadata.references))
                 : '',
@@ -210,13 +207,6 @@ export class FileService implements LinkResolver {
             }
         }
 
-        // Update links
-        if (metadata?.previousNote) {
-            this.noteCacheManager.addLink(metadata.previousNote, event.id);
-        }
-        if (metadata?.nextNote) {
-            this.noteCacheManager.addLink(event.id, metadata.nextNote);
-        }
     }
 
     async savePoll(poll: PollFrontmatter, content: string): Promise<void> {

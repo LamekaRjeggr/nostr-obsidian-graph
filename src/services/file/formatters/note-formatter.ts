@@ -7,11 +7,6 @@ export interface LinkResolver {
 }
 
 
-export interface ChronologicalMetadata {
-    previousNote?: string;
-    nextNote?: string;
-}
-
 export interface NoteFrontmatter {
     id: string;
     pubkey: string;
@@ -48,11 +43,6 @@ export class NoteFormatter {
             YAMLProcessor.stringify(mergedFrontmatter),
             ContentProcessor.cleanContent(note.content)
         ];
-
-        // Add chronological links if they exist
-        if (note.previousNote || note.nextNote) {
-            sections.push(await this.formatChronologicalLinks(note));
-        }
 
         // Add reference sections if they exist
         const references = note.references || [];
@@ -130,22 +120,6 @@ export class NoteFormatter {
         }
 
         return frontmatter;
-    }
-
-    public async formatChronologicalLinks(note: NoteFile | ChronologicalMetadata): Promise<string> {
-        const links = ['\n## Chronological Links'];
-        
-        if (note.previousNote) {
-            const prevTitle = await this.linkResolver.getTitleById(note.previousNote);
-            links.push(`Previous: [[${prevTitle || note.previousNote}]]`);
-        }
-        
-        if (note.nextNote) {
-            const nextTitle = await this.linkResolver.getTitleById(note.nextNote);
-            links.push(`Next: [[${nextTitle || note.nextNote}]]`);
-        }
-        
-        return links.join('\n');
     }
 
     public async formatReferences(references: TagReference[]): Promise<string> {

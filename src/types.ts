@@ -54,11 +54,11 @@ export interface ProfileData extends NostrProfile {
     displayName?: string;
 }
 
-export interface ChronologicalMetadata {
-    previousNote?: string;
-    nextNote?: string;
+export interface NoteMetadata {
     references?: Reference[];
     referencedBy?: Reference[];
+    created_at?: string;
+    created?: number;
 }
 
 export interface PollFrontmatter {
@@ -103,7 +103,6 @@ export interface ContactOptions {
 }
 
 export interface EnhancedMetadataOptions {
-    temporal?: boolean;     // Include chronological ordering
     reactions?: boolean;    // Process reactions
     titles?: boolean;       // Cache titles
 }
@@ -125,8 +124,6 @@ export interface NoteFile {
     kind?: number;
     tags: string[][];
     authorName?: string;
-    previousNote?: string;
-    nextNote?: string;
     references?: Reference[];
     referencedBy?: Reference[];
     mentions?: string[];

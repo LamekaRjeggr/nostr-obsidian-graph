@@ -1,11 +1,10 @@
-import { NostrEvent, Reference, TagType, ChronologicalMetadata } from '../../../types';
+import { NostrEvent, Reference, TagType, NoteMetadata } from '../../../types';
 import { EventService } from '../../../services/core/event-service';
 import { BaseEventHandler, EventKinds, ProcessingPriority } from '../../../services/core/base-event-handler';
 import { TagProcessor } from '../../processors/tag-processor';
 import { ReferenceProcessor } from '../../processors/reference-processor';
 import { App } from 'obsidian';
 
-import { TemporalProcessor } from '../../processors/temporal-processor';
 import { ReactionProcessor } from '../../processors/reaction-processor';
 import { NoteCacheManager } from '../../file/cache/note-cache-manager';
 import { ContentProcessor } from '../../file/utils/text-processor';
@@ -16,7 +15,6 @@ export class NoteEventHandler extends BaseEventHandler {
     private tagProcessor: TagProcessor;
     private referenceProcessor: ReferenceProcessor;
     private pathUtils: PathUtils;
-    private temporalProcessor: TemporalProcessor;
 
     constructor(
         eventService: EventService,
@@ -29,7 +27,6 @@ export class NoteEventHandler extends BaseEventHandler {
         super(eventService, EventKinds.NOTE, ProcessingPriority.NOTE);
         this.tagProcessor = new TagProcessor();
         this.referenceProcessor = referenceProcessor;
-        this.temporalProcessor = new TemporalProcessor(app);
         this.pathUtils = new PathUtils(app);
     }
 
@@ -44,16 +41,11 @@ export class NoteEventHandler extends BaseEventHandler {
         const safeTitle = this.pathUtils.getPath(title, '', { extractTitle: false }).replace(/^.*[/\\](.+?)\.md$/, '$1');
         this.noteCacheManager.cacheTitle(event.id, safeTitle);
 
-        // Process references and temporal data
-        const [refResults, temporalResults] = await Promise.all([
-            this.referenceProcessor.process(event),
-            this.temporalProcessor.process(event)
-        ]);
+        // Process references
+        const refResults = await this.referenceProcessor.process(event);
         
         // Create metadata object
-        const metadata: ChronologicalMetadata = {
-            previousNote: temporalResults.chronological.previousEvent,
-            nextNote: temporalResults.chronological.nextEvent,
+        const metadata: NoteMetadata = {
             references: refResults.nostr.outgoing.map(id => ({ 
                 targetId: id, 
                 type: TagType.MENTION 
@@ -62,7 +54,8 @@ export class NoteEventHandler extends BaseEventHandler {
                 targetId: id, 
                 type: TagType.MENTION 
             })),
-            ...temporalResults.metadata
+            created_at: new Date(event.created_at * 1000).toISOString(),
+            created: event.created_at
         };
 
         // Save note with metadata
