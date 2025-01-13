@@ -23,7 +23,6 @@ export class UnifiedFetchProcessor {
     private noteCacheManager: NoteCacheManager;
     private pathUtils: PathUtils;
     private reactionProcessor: ReactionProcessor;
-    private eventService: EventService;
     private streamHandler: EventStreamHandler;
     private contactGraphService: ContactGraphService;
 
@@ -31,12 +30,12 @@ export class UnifiedFetchProcessor {
         private relayService: RelayService,
         private eventBus: NostrEventBus,
         private fileService: FileService,
-        private app: App
+        private app: App,
+        private eventService: EventService
     ) {
         this.contactGraphService = new ContactGraphService(relayService);
         this.tagProcessor = new TagProcessor();
         this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
-        this.eventService = new EventService();
         
         // Initialize processors
         this.noteCacheManager = new NoteCacheManager();
@@ -54,11 +53,29 @@ export class UnifiedFetchProcessor {
             kind: EventKinds.METADATA,
             priority: 1,
             process: async (event) => {
-                const metadata = JSON.parse(event.content);
-                await this.fileService.saveProfile({
-                    pubkey: event.pubkey,
-                    ...metadata
-                });
+                try {
+                    if (!ValidationService.validateProfileEvent(event)) {
+                        console.error('Invalid profile event');
+                        new Notice('Invalid profile event received');
+                        return;
+                    }
+
+                    const metadata = JSON.parse(event.content);
+                    await this.fileService.saveProfile({
+                        pubkey: event.pubkey,
+                        displayName: metadata.display_name || metadata.name,
+                        name: metadata.name,
+                        about: metadata.about,
+                        picture: metadata.picture,
+                        nip05: metadata.nip05
+                    });
+
+                    // Emit state change to trigger profile moves
+                    this.eventService.emitStateChange(true);
+                } catch (error) {
+                    console.error('Error processing profile:', error);
+                    new Notice('Error processing profile event');
+                }
             },
             validate: (event) => {
                 try {
@@ -69,7 +86,8 @@ export class UnifiedFetchProcessor {
                 }
             },
             cleanup: async () => {
-                // No cleanup needed for metadata
+                // Signal completion of profile processing
+                this.eventService.emitStateChange(false);
             }
         });
 
@@ -205,7 +223,8 @@ export class UnifiedFetchProcessor {
                     kinds: [EventKinds.METADATA],
                     authors: directFollows,
                     skipSave: !options.linkInGraph,
-                    limit: directFollows.length
+                    limit: directFollows.length,
+                    useStream: true  // Ensure metadata events go through stream handler
                 });
             }
         }
@@ -233,7 +252,8 @@ export class UnifiedFetchProcessor {
                         kinds: [EventKinds.METADATA],
                         limit: contacts.length,
                         authors: contacts,
-                        skipSave: !options.contacts.linkInGraph
+                        skipSave: !options.contacts.linkInGraph,
+                        useStream: true  // Ensure metadata events go through stream handler
                     });
                 }
                 
@@ -269,7 +289,8 @@ export class UnifiedFetchProcessor {
                 await this.streamHandler.processEvents(filteredEvents);
             }
 
-            if (!options.skipSave) {
+            // Skip direct save if using stream handler since events will be processed by their handlers
+            if (!options.skipSave && !options.useStream) {
                 for (const event of filteredEvents) {
                     const refResults = await this.referenceProcessor.process(event);
                     
@@ -355,7 +376,8 @@ export class UnifiedFetchProcessor {
                         include: true,
                         fetchProfiles: true,
                         linkInGraph: true
-                    }
+                    },
+                    useStream: true  // Ensure metadata events go through stream handler
                 });
             }
 
@@ -398,6 +420,17 @@ export class UnifiedFetchProcessor {
             console.error('Error fetching complete note:', error);
             return null;
         }
+    }
+
+    getReferenceProcessor(): ReferenceProcessor {
+        return this.referenceProcessor;
+    }
+
+    reset(): void {
+        this.streamHandler.reset();
+        this.referenceProcessor.clear();
+        this.noteCacheManager.clear();
+        this.contactGraphService.clear();
     }
 
     async fetchThreadContext(eventId: string, limit: number = 50): Promise<ThreadContext> {

@@ -1,6 +1,7 @@
 import { HexString } from '../../../types';
+import { INoteCacheManager } from '../../../core/interfaces/INoteCacheManager';
 
-export class NoteCacheManager {
+export class NoteCacheManager implements INoteCacheManager {
     private titleCache: Map<string, string> = new Map();
     private linkCache: Map<string, Set<string>> = new Map();
 

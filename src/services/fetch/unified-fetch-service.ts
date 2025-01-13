@@ -2,9 +2,7 @@ import { NostrSettings } from '../../types';
 import { RelayService } from '../core/relay-service';
 import { EventService } from '../core/event-service';
 import { FileService } from '../core/file-service';
-import { FetchProcessor } from './fetch-processor';
 import { ValidationService } from '../validation-service';
-import { ReferenceProcessor } from '../processors/reference-processor';
 import { App, Notice } from 'obsidian';
 import { KeyService } from '../core/key-service';
 import { EventEmitter } from '../event-emitter';
@@ -14,9 +12,12 @@ import { ReactionProcessor } from '../processors/reaction-processor';
 import { NoteCacheManager } from '../file/cache/note-cache-manager';
 import { PollService } from '../../experimental/polls/poll-service';
 import NostrPlugin from '../../main';
+import { UnifiedFetchProcessor } from './unified-fetch-processor';
+import { EventKinds } from '../core/base-event-handler';
+import { NostrEventBus } from '../../experimental/event-bus/event-bus';
 
-export class FetchService {
-    private processor: FetchProcessor;
+export class UnifiedFetchService {
+    private processor: UnifiedFetchProcessor;
     private currentCount: number = 0;
     private initialized = false;
 
@@ -28,11 +29,8 @@ export class FetchService {
         private app: App,
         private plugin: NostrPlugin
     ) {
-        this.processor = new FetchProcessor(settings, relayService, eventService, fileService, app);
-    }
-
-    getReferenceProcessor(): ReferenceProcessor {
-        return this.processor.getReferenceProcessor();
+        const eventBus = NostrEventBus.getInstance({ enableLogging: true });
+        this.processor = new UnifiedFetchProcessor(relayService, eventBus, fileService, app, eventService);
     }
 
     private async initialize() {
@@ -42,8 +40,7 @@ export class FetchService {
 
         // Initialize core services
         this.plugin.eventEmitter = new EventEmitter();
-        this.plugin.eventService = new EventService();
-        this.plugin.noteCacheManager = new NoteCacheManager();
+        this.plugin.noteCacheManager = this.plugin.noteCacheManager || new NoteCacheManager();
 
         // Initialize relay service
         this.plugin.relayService = new RelayService(this.plugin.settings);
@@ -64,17 +61,17 @@ export class FetchService {
             this.plugin.relayService,
             this.plugin.eventService,
             this.plugin.profileManager,
-            this.plugin.fileService
+            this.plugin.fileService,
+            this.plugin.app,
+            this.processor
         );
 
-        // Initialize reaction processor with new implementation
         this.plugin.reactionProcessor = new ReactionProcessor(
             this.plugin.eventService,
             this.plugin.app,
             this.plugin.fileService
         );
 
-        // Initialize poll service if enabled
         if (this.plugin.settings.polls.enabled) {
             this.plugin.pollService = new PollService(
                 this.plugin.app,
@@ -86,8 +83,8 @@ export class FetchService {
             await this.plugin.pollService.initialize();
         }
 
-        // Register event handlers
-        this.plugin.eventService.onNote(async (event, metadata) => {
+        // Register note handler
+        this.eventService.onNote(async (event, metadata) => {
             try {
                 await this.plugin.fileService.saveNote(event, metadata);
                 await this.plugin.reactionProcessor.processPendingReactions(event.id);
@@ -95,34 +92,6 @@ export class FetchService {
                 console.error('[NostrPlugin] Error saving note:', error);
             }
         });
-
-        this.plugin.eventService.onProfile(async (event) => {
-            try {
-                if (event.kind === 0) {
-                    const metadata = JSON.parse(event.content);
-                    await this.plugin.profileManager.processProfile(event.pubkey, metadata);
-                }
-            } catch (error) {
-                console.error('[NostrPlugin] Error processing profile:', error);
-            }
-        });
-
-        this.plugin.eventService.onReaction(async (event) => {
-            try {
-                await this.plugin.reactionProcessor.process(event);
-            } catch (error) {
-                console.error('[NostrPlugin] Error processing reaction:', error);
-            }
-        });
-
-        // Update processor with new services
-        this.processor = new FetchProcessor(
-            this.plugin.settings,
-            this.plugin.relayService,
-            this.plugin.eventService,
-            this.plugin.fileService,
-            this.plugin.app
-        );
 
         this.initialized = true;
         new Notice('Services initialized');
@@ -148,18 +117,26 @@ export class FetchService {
         new Notice('Fetching notes and reactions...');
         
         try {
-            const includeContacts = true;
-            this.currentCount = await this.processor.processMainUser(hex, this.currentCount, includeContacts);
+            await this.processor.fetchWithOptions({
+                kinds: [EventKinds.NOTE],
+                author: hex,
+                limit: this.currentCount,
+                contacts: {
+                    include: true,
+                    fetchProfiles: true,
+                    linkInGraph: true
+                },
+                useStream: true,
+                enhanced: {
+                    titles: true,
+                    reactions: true
+                }
+            });
             new Notice('Fetch completed successfully');
         } catch (error) {
             console.error('Error fetching data:', error);
             new Notice('Error fetching data');
         }
-    }
-
-    reset(): void {
-        this.currentCount = 0;
-        this.processor.clearChain();
     }
 
     async processFollows(pubkeys: string[], currentCount: number): Promise<void> {
@@ -169,10 +146,24 @@ export class FetchService {
         }
 
         try {
-            this.currentCount = await this.processor.processFollows(pubkeys, currentCount);
+            await this.processor.fetchWithOptions({
+                kinds: [EventKinds.METADATA, EventKinds.NOTE],
+                authors: pubkeys,
+                limit: currentCount,
+                useStream: true,
+                enhanced: {
+                    titles: true,
+                    reactions: true
+                }
+            });
         } catch (error) {
             console.error('Error processing follows:', error);
             new Notice('Error processing follows');
         }
+    }
+
+    reset(): void {
+        this.currentCount = 0;
+        this.processor.reset();
     }
 }

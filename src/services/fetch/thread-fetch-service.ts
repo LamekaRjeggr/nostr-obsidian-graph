@@ -227,6 +227,32 @@ private async getUnfetchedReferences(): Promise<string[]> {
         }
     }
 
+    private async processBatch(batch: string[], maxRetries: number = 3): Promise<void> {
+        // Process multiple threads in parallel
+        const promises = batch.map(async (eventId) => {
+            let retries = 0;
+            while (retries < maxRetries) {
+                try {
+                    await this.fetchSingleThread(eventId);
+                    this.updateProgress(true);
+                    return;
+                } catch (error) {
+                    retries++;
+                    if (retries === maxRetries) {
+                        console.error(`Failed to process event ${eventId} after ${maxRetries} retries:`, error);
+                        this.updateProgress(false);
+                    } else {
+                        // Wait before retrying (exponential backoff)
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+                    }
+                }
+            }
+        });
+
+        // Wait for all threads in batch to complete
+        await Promise.all(promises);
+    }
+
     async fetchVaultThreads(batchSize: number = 50): Promise<void> {
         try {
             // Reset progress
@@ -244,28 +270,47 @@ private async getUnfetchedReferences(): Promise<string[]> {
             this.progress.total = unfetchedIds.length;
             new Notice(`Found ${unfetchedIds.length} unfetched references. Fetching in batches of ${batchSize}...`);
 
-            // Process events in batches
-            for (let i = 0; i < unfetchedIds.length; i += batchSize) {
-                const batch = unfetchedIds.slice(i, i + batchSize);
+            // Calculate optimal number of concurrent batches based on available references
+            const concurrentBatches = Math.min(
+                Math.ceil(unfetchedIds.length / batchSize),
+                3 // Maximum concurrent batches
+            );
+
+            // Process events in parallel batches
+            for (let i = 0; i < unfetchedIds.length; i += (batchSize * concurrentBatches)) {
+                const batchPromises = [];
                 
-                // Process each event ID in the current batch
-                for (const eventId of batch) {
-                    try {
-                        await this.fetchSingleThread(eventId);
-                        this.updateProgress(true);
-                    } catch (error) {
-                        console.error(`Error processing event ${eventId}:`, error);
-                        this.updateProgress(false);
+                // Create concurrent batch promises
+                for (let j = 0; j < concurrentBatches; j++) {
+                    const start = i + (j * batchSize);
+                    const batch = unfetchedIds.slice(start, start + batchSize);
+                    if (batch.length > 0) {
+                        batchPromises.push(this.processBatch(batch));
                     }
                 }
 
-                // Add a small delay between batches to avoid overwhelming relays
-                if (i + batchSize < unfetchedIds.length) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                // Wait for all concurrent batches to complete
+                await Promise.all(batchPromises);
+
+                // Add a small delay between batch groups to avoid overwhelming relays
+                if (i + (batchSize * concurrentBatches) < unfetchedIds.length) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
+
+                // Update progress notice
+                new Notice(
+                    `Processing threads: ${this.progress.processed}/${this.progress.total}\n` +
+                    `Succeeded: ${this.progress.succeeded}\n` +
+                    `Failed: ${this.progress.failed}`
+                );
             }
 
-            new Notice(`Reference fetch complete: ${this.progress.succeeded} succeeded, ${this.progress.failed} failed`);
+            new Notice(
+                `Thread fetch complete:\n` +
+                `Total processed: ${this.progress.processed}\n` +
+                `Succeeded: ${this.progress.succeeded}\n` +
+                `Failed: ${this.progress.failed}`
+            );
         } catch (error) {
             console.error('Error in vault thread fetch:', error);
             new Notice(`Error fetching vault threads: ${error.message}`);

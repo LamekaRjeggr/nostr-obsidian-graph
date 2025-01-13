@@ -6,29 +6,31 @@ import { SettingsTab } from './views/settings-tab';
 import { RelayService } from './services/core/relay-service';
 import { EventService } from './services/core/event-service';
 import { FileService } from './services/core/file-service';
-import { FetchService } from './services/fetch/fetch-service';
+import { UnifiedFetchService } from './services/fetch/unified-fetch-service';
 import { ValidationService } from './services/validation-service';
+import { KeyService } from './services/core/key-service';
 import { EventEmitter } from './services/event-emitter';
 import { ProfileManagerService } from './services/profile/profile-manager-service';
-import { FetchSettingsModal } from './views/modals/fetch-settings-modal';
+import { UnifiedFetchModal } from './views/modals/unified-fetch-modal';
+import { UnifiedFetchSettings, DEFAULT_UNIFIED_SETTINGS, migrateSettings } from './views/modals/unified-settings';
 import { MentionedProfileFetcher } from './services/fetch/mentioned-profile-fetcher';
 import { MentionedNoteFetcher } from './services/fetch/mentioned-note-fetcher';
 import { CurrentFileService } from './services/core/current-file-service';
-import { NoteCacheManager } from './services/file/cache/note-cache-manager';
+import { EnhancedNoteCacheManager } from './services/file/cache/enhanced-note-cache-manager';
 import { PollService } from './experimental/polls/poll-service';
 import { UnifiedFetchProcessor } from './services/fetch/unified-fetch-processor';
 import { KeywordSearchHandler } from './services/fetch/handlers/keyword-search-handler';
 import { HexFetchHandler } from './services/fetch/handlers/hex-fetch-handler';
 import { ThreadFetchHandler } from './services/fetch/handlers/thread-fetch-handler';
 import { NostrEventBus } from './experimental/event-bus/event-bus';
-import { NostrEventType } from './experimental/event-bus/types';
+import { NostrEventType, NostrErrorEvent } from './experimental/event-bus/types';
 import { ContactGraphService } from './services/contacts/contact-graph-service';
 import { ReferenceProcessor } from './services/processors/reference-processor';
 import { NoteEventHandler } from './services/fetch/handlers/note-handler';
 import { ReactionProcessor } from './services/processors/reaction-processor';
 import { ThreadFetchService } from './services/fetch/thread-fetch-service';
 
-const DEFAULT_SETTINGS: NostrSettings = {
+const DEFAULT_PLUGIN_SETTINGS: NostrSettings = {
     npub: '',
     relays: [
         { url: 'wss://relay.damus.io', enabled: true },
@@ -58,6 +60,12 @@ const DEFAULT_SETTINGS: NostrSettings = {
     threadSettings: {
         limit: 50,              // Default thread fetch limit
         includeContext: true    // Include thread context by default
+    },
+    cache: {
+        maxSize: 10000,         // Default max cache entries
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        enabled: true,          // Enable cache by default
+        persistToDisk: true     // Enable cache persistence by default
     }
 };
 
@@ -66,13 +74,13 @@ export default class NostrPlugin extends Plugin {
     relayService: RelayService;
     eventService: EventService;
     fileService: FileService;
-    fetchService: FetchService;
+    unifiedFetchService: UnifiedFetchService;
     eventEmitter: EventEmitter;
     profileManager: ProfileManagerService;
     mentionedProfileFetcher: MentionedProfileFetcher;
     currentFileService: CurrentFileService;
     reactionProcessor: ReactionProcessor;
-    noteCacheManager: NoteCacheManager;
+    noteCacheManager: EnhancedNoteCacheManager;
     pollService: PollService;
     unifiedFetchProcessor: UnifiedFetchProcessor;
     contactGraphService: ContactGraphService;
@@ -89,34 +97,52 @@ export default class NostrPlugin extends Plugin {
 
             // For profiles (kind 0), fetch their content
             if (metadata.kind === 0) {
-                await this.fetchService.processFollows([metadata.id], 0);
+                // Use UnifiedFetchProcessor for profile content
+                await this.unifiedFetchProcessor.fetchWithOptions({
+                    kinds: [1], // Fetch notes
+                    author: metadata.id,
+                    limit: this.settings.hexFetch?.batchSize || 50
+                });
             } else {
-                // For notes, process through FetchProcessor's chain
-                const noteIds = new Set<string>();
-                noteIds.add(metadata.id);
+                // For notes, fetch thread context and related content
+                const noteIds = new Set<string>([metadata.id]);
+                const profileIds = new Set<string>([metadata.pubkey]);
                 
-                // Add referenced notes from e-tags
-                metadata.nostr_tags
-                    ?.filter(tag => tag[0] === 'e')
-                    .forEach(tag => noteIds.add(tag[1]));
+                // Add referenced notes and profiles from tags
+                metadata.nostr_tags?.forEach(tag => {
+                    if (tag[0] === 'e') noteIds.add(tag[1]);
+                    if (tag[0] === 'p') profileIds.add(tag[1]);
+                });
 
-                // Get all profiles involved
-                const profileIds = new Set<string>();
-                profileIds.add(metadata.pubkey);
-                
-                // Add mentioned profiles from p-tags
-                metadata.nostr_tags
-                    ?.filter(tag => tag[0] === 'p')
-                    .forEach(tag => profileIds.add(tag[1]));
+                // Fetch thread context first
+                await this.unifiedFetchProcessor.fetchThreadContext(
+                    metadata.id,
+                    this.settings.threadSettings?.limit || 50
+                );
 
-                // Process through FetchProcessor
-                await this.fetchService.processFollows(Array.from(profileIds), 0);
+                // Then fetch profiles' content if enabled
+                if (this.settings.threadSettings?.includeContext) {
+                    for (const pubkey of profileIds) {
+                        await this.unifiedFetchProcessor.fetchWithOptions({
+                            kinds: [1],
+                            author: pubkey,
+                            limit: this.settings.hexFetch?.batchSize || 50
+                        });
+                    }
+                }
             }
             
             new Notice('Content fetched successfully');
         } catch (error) {
             console.error('Error fetching node content:', error);
             new Notice(`Error: ${error.message}`);
+            
+            // Publish error event
+            await NostrEventBus.getInstance().publish(NostrEventType.ERROR, {
+                message: error.message,
+                context: 'processNodeContent',
+                details: error
+            } as NostrErrorEvent);
         }
     }
 
@@ -143,8 +169,15 @@ export default class NostrPlugin extends Plugin {
         // Initialize contact graph service
         this.contactGraphService = new ContactGraphService(this.relayService);
 
-        // Initialize fetch service
-        this.fetchService = new FetchService(
+        // Initialize cache manager
+        this.noteCacheManager = new EnhancedNoteCacheManager(
+            this,
+            this.settings.cache?.maxSize || 10000,
+            this.settings.cache?.maxAge || 24 * 60 * 60 * 1000
+        );
+
+        // Initialize unified fetch service and processor
+        this.unifiedFetchService = new UnifiedFetchService(
             this.settings,
             this.relayService,
             this.eventService,
@@ -158,7 +191,8 @@ export default class NostrPlugin extends Plugin {
             this.relayService,
             NostrEventBus.getInstance(),
             this.fileService,
-            this.app
+            this.app,
+            this.eventService
         );
 
         // Create reference processor
@@ -179,6 +213,28 @@ export default class NostrPlugin extends Plugin {
             this.fileService
         );
 
+        // Initialize mentioned profile fetcher with unified processor
+        this.mentionedProfileFetcher = new MentionedProfileFetcher(
+            this.relayService,
+            this.eventService,
+            this.profileManager,
+            this.fileService,
+            this.app,
+            this.unifiedFetchProcessor
+        );
+
+        // Register profile handler
+        this.eventService.onProfile(async (event) => {
+            try {
+                if (event.kind === 0) {
+                    const metadata = JSON.parse(event.content);
+                    await this.profileManager.processProfile(event.pubkey, metadata);
+                }
+            } catch (error) {
+                console.error('[NostrPlugin] Error processing profile:', error);
+            }
+        });
+
         // Register reaction processor with event bus
         NostrEventBus.getInstance().subscribe(NostrEventType.REACTION, this.reactionProcessor);
         NostrEventBus.getInstance().subscribe(NostrEventType.ZAP, this.reactionProcessor);
@@ -186,7 +242,7 @@ export default class NostrPlugin extends Plugin {
         // Initialize node fetch handler
         const nodeFetchHandler = new NodeFetchHandler(
             this.eventService,
-            this.fetchService.getReferenceProcessor(),
+            this.unifiedFetchProcessor.getReferenceProcessor(),
             this.unifiedFetchProcessor,
             this.app,
             {
@@ -256,18 +312,31 @@ export default class NostrPlugin extends Plugin {
             name: 'Open Fetch Settings',
             hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'f' }],
             callback: () => {
-                new FetchSettingsModal(
+                // Convert legacy settings to unified format
+                const unifiedSettings = migrateSettings({
+                    notesPerProfile: this.settings.notesPerProfile,
+                    batchSize: this.settings.batchSize,
+                    includeOwnNotes: this.settings.includeOwnNotes,
+                    hexFetch: this.settings.hexFetch,
+                    threadSettings: this.settings.threadSettings
+                });
+
+                new UnifiedFetchModal(
                     this.app,
-                    this.settings, // Pass entire settings object
+                    unifiedSettings,
                     async (settings) => {
-                        // Update settings with spread to maintain all properties
+                        // Update plugin settings from unified settings
                         this.settings = {
                             ...this.settings,
-                            ...settings
+                            notesPerProfile: settings.notesPerProfile,
+                            batchSize: settings.batchSize,
+                            includeOwnNotes: settings.includeOwnNotes,
+                            hexFetch: settings.hexFetch,
+                            threadSettings: settings.thread
                         };
                         await this.saveSettings();
                     },
-                    this.fetchService
+                    this.unifiedFetchProcessor
                 ).open();
             }
         });
@@ -280,7 +349,12 @@ export default class NostrPlugin extends Plugin {
                     new Notice('Invalid npub format');
                     return;
                 }
-                await this.fetchService.fetchMainUser();
+                const pubkey = KeyService.npubToHex(this.settings.npub);
+                if (!pubkey) {
+                    new Notice('Failed to decode npub');
+                    return;
+                }
+                await this.unifiedFetchService.fetchMainUser();
             }
         });
 
@@ -288,7 +362,7 @@ export default class NostrPlugin extends Plugin {
             id: 'fetch-mentioned-profiles',
             name: 'Fetch Mentioned Profiles',
             callback: async () => {
-                const mentions = this.fetchService.getReferenceProcessor().getAllMentions();
+                const mentions = this.unifiedFetchProcessor.getReferenceProcessor().getAllMentions();
                 if (mentions.length === 0) return;
                     
                 await this.mentionedProfileFetcher.fetchMentionedProfiles(mentions);
@@ -369,7 +443,7 @@ export default class NostrPlugin extends Plugin {
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        this.settings = Object.assign({}, DEFAULT_PLUGIN_SETTINGS, await this.loadData());
     }
 
     async saveSettings() {
@@ -378,6 +452,16 @@ export default class NostrPlugin extends Plugin {
         // Update services with new settings if they exist
         if (this.relayService) {
             this.relayService.updateSettings(this.settings);
+        }
+
+        // Update cache settings if they exist
+        if (this.noteCacheManager && this.settings.cache) {
+            if (this.settings.cache.maxSize) {
+                this.noteCacheManager.setMaxSize(this.settings.cache.maxSize);
+            }
+            if (this.settings.cache.maxAge) {
+                this.noteCacheManager.setMaxAge(this.settings.cache.maxAge);
+            }
         }
 
         // Restart auto-update if settings changed
@@ -394,7 +478,14 @@ export default class NostrPlugin extends Plugin {
         }
 
         this.updateInterval = setInterval(
-            () => this.fetchService.fetchMainUser(),
+            async () => {
+                const pubkey = KeyService.npubToHex(this.settings.npub);
+                if (!pubkey) {
+                    new Notice('Failed to decode npub');
+                    return;
+                }
+                await this.unifiedFetchService.fetchMainUser();
+            },
             this.settings.updateInterval * 1000
         );
     }

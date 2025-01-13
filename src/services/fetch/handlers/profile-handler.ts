@@ -41,7 +41,7 @@ export class ProfileEventHandler extends BaseEventHandler {
 
             await this.fileService.saveProfile(profile);
             this.processedProfiles.add(event.pubkey);
-            this.eventService.emitProfile(event);
+            // Don't re-emit the event since it's already in the pipeline
             this.eventService.emitStateChange(true);
         } catch (error) {
             console.error('Error processing profile:', error);

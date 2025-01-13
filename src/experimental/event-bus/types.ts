@@ -8,7 +8,8 @@ export enum NostrEventType {
     KEYWORD_SEARCH = 'keyword_search',
     HEX_FETCH = 'hex_fetch',
     THREAD_FETCH = 'thread_fetch',  // Added for thread fetching
-    NODE_FETCH = 'node_fetch'       // Added for node-based fetching
+    NODE_FETCH = 'node_fetch',      // Added for node-based fetching
+    ERROR = 'error'                 // Added for error handling
 }
 
 export interface NodeFetchEvent {
@@ -98,4 +99,10 @@ export interface ThreadFetchEvent {
     eventId: string;           // The event ID to fetch thread for
     limit?: number;            // Max number of replies to fetch
     includeContext?: boolean;  // Whether to fetch root/parent
+}
+
+export interface NostrErrorEvent {
+    message: string;           // Error message
+    context: string;          // Context where error occurred
+    details?: any;            // Optional error details
 }

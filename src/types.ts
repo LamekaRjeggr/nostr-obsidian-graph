@@ -1,3 +1,5 @@
+export type HexString = string;
+
 export interface NostrSettings {
     npub: string;
     relays: RelaySettings[];
@@ -24,6 +26,12 @@ export interface NostrSettings {
     threadSettings?: {
         limit: number;
         includeContext: boolean;
+    };
+    cache?: {
+        maxSize: number;        // Maximum number of entries in cache
+        maxAge: number;         // Maximum age of cache entries in milliseconds
+        enabled: boolean;       // Whether to use cache
+        persistToDisk: boolean; // Whether to save cache to disk
     };
 }
 
@@ -192,4 +200,12 @@ export interface ThreadFetchProgress {
     processed: number;
     succeeded: number;
     failed: number;
+}
+
+export interface CacheStats {
+    hits: number;
+    misses: number;
+    evictions: number;
+    size: number;
+    maxSize: number;
 }

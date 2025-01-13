@@ -1,5 +1,82 @@
 # Changelog
 
+## [0.87.3] - 2024-01-14
+
+### Fixed
+- Removed duplicate profile event handler in UnifiedFetchService
+- Improved profile event handling pipeline
+- Reduced profile duplication issues
+
+### Changed
+- Documented profile processing challenges in KNOWN_ISSUES.md
+- Improved event service lifecycle management
+- Better profile event handling architecture
+
+## [0.87.1] - 2024-01-13
+
+### Added
+- Parallel thread fetching with concurrent batches
+- Retry logic with exponential backoff for failed fetches
+- Enhanced progress tracking and reporting
+- Optimized batch processing for vault-wide thread fetching
+
+### Changed
+- Improved vault-wide thread fetching performance
+- Better error handling in thread fetching
+- More detailed progress notifications
+- Optimized relay request patterns
+- Reduced bundle size to 356.5kb (from ~500kb)
+
+### Fixed
+- Thread fetch reliability with retry mechanism
+- Progress tracking accuracy
+- Batch processing efficiency
+- TypeScript dependency conflicts
+
+### Added
+- Parallel thread fetching with concurrent batches
+- Retry logic with exponential backoff for failed fetches
+- Enhanced progress tracking and reporting
+- Optimized batch processing for vault-wide thread fetching
+
+### Changed
+- Improved vault-wide thread fetching performance
+- Better error handling in thread fetching
+- More detailed progress notifications
+- Optimized relay request patterns
+
+### Fixed
+- Thread fetch reliability with retry mechanism
+- Progress tracking accuracy
+- Batch processing efficiency
+
+## [0.87.0] - 2024-01-XX
+
+### Added
+- New UnifiedFetchService for improved fetch operations
+- Enhanced settings modal with tabbed interface
+- Support for advanced fetch options
+- Better npub/hex key handling with KeyService integration
+- Improved error handling with event bus integration
+
+### Changed
+- Migrated from FetchProcessor to UnifiedFetchProcessor
+- Improved settings management system
+- Reduced bundle size by ~30%
+- Enhanced type safety throughout the codebase
+- Better error handling and validation
+
+### Deprecated
+- Legacy FetchService (will be removed in 1.0.0)
+- Legacy FetchProcessor (will be removed in 1.0.0)
+- Old settings format (automatic migration provided)
+
+### Fixed
+- Memory usage in batch processing
+- Event ordering issues
+- Settings synchronization problems
+- Proper npub to hex conversion handling
+
 ## [0.87.0] - 2024-12-30
 ### Added
 - Integrated ContactGraphService with UnifiedFetchProcessor

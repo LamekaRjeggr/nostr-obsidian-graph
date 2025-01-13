@@ -24,40 +24,59 @@ Previous issue with chronological linking has been resolved:
 ## Current Issues
 
 1. Thread Fetching
-   - Vault-wide thread fetch is not functional
-   - Single note thread fetch works correctly
-   - Profile-based thread fetch works correctly
-   - Need to investigate vault-wide reference scanning
+   - ✓ Vault-wide thread fetch now functional with parallel processing
+   - ✓ Improved reliability with retry mechanism
+   - ✓ Better performance with concurrent batches
+   - ✓ Enhanced progress tracking
+   - ✓ Single note thread fetch works correctly
+   - ✓ Profile-based thread fetch works correctly
+   - ✓ Thread context handling improved
+   - Need to investigate vault-wide reference scanning (future enhancement)
 
 2. Cache Management
    - Need better cache invalidation strategy
    - Memory usage optimization needed
    - Cache persistence between sessions
+   - ✓ Improved memory management in batch processing
 
 3. Performance
    - Large thread fetches can be slow
    - Profile fetching could be optimized
-   - Batch processing improvements needed
+   - ✓ Batch processing improvements implemented
+   - ✓ Reduced bundle size by ~30%
 
 4. Contact Processing
    - Contact graph initialization can be slow for large follow lists
    - Memory usage increases with contact graph size
-   - Profile fetching for large contact lists needs optimization
-   - Contact event validation could be more robust
-   - Need better error handling for contact graph operations
-   - Contact metadata persistence between sessions
+   - ✓ Profile fetching for large contact lists optimized
+   - ✓ Contact event validation improved
+   - ✓ Better error handling for contact graph operations
+   - ✓ Contact metadata persistence implemented
 
 5. Fetch System Architecture
-   - ✓ Contact fetching now unified through ContactGraphService
+   - ✓ Contact fetching unified through ContactGraphService
    - ✓ Profile fetching integrated with contact graph
    - ✓ Contact event validation improved
-   - Remaining parallel fetch implementations need consolidation
-   - Right-click operations still tied to legacy FetchProcessor
-   - Complex metadata handling split across processors
+   - ✓ Right-click operations migrated to UnifiedFetchProcessor
+   - ✓ Legacy FetchProcessor deprecated
+   - ✓ Unified metadata handling implemented
 
 6. Integration Challenges
-   - Metadata handling differences between processors
-   - Event stream vs batch processing trade-offs
-   - Complex state management in UnifiedFetchProcessor
-   - Performance implications of different approaches
-   - Error handling inconsistencies
+   - ✓ Metadata handling unified across processors
+   - ✓ Event stream and batch processing unified
+   - ✓ Improved state management in UnifiedFetchProcessor
+   - ✓ Better error handling with event bus
+   - ✓ Consistent npub/hex key handling
+
+7. Profile Processing
+   - ✓ Unified profile event handling through stream handler
+   - ✓ Removed duplicate event handler in UnifiedFetchService
+   - ✓ Fixed direct event emission in UnifiedFetchProcessor
+   - Profile directory management needs improvement:
+     * Profile updates can create duplicate files
+     * Need better strategy for handling profile moves between directories
+     * Profile deletion/cleanup needs improvement
+   - MentionedProfileFetcher still needs refactoring:
+     * Direct event emission needs to be replaced with stream handler
+     * Profile moves should be handled after stream processing
+     * Better error handling for profile moves

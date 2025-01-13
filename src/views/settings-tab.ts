@@ -175,5 +175,112 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }));
         }
+
+        // Cache Settings
+        containerEl.createEl('h3', { text: 'Cache Settings' });
+
+        new Setting(containerEl)
+            .setName('Enable Cache')
+            .setDesc('Enable caching of note titles and links')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.cache?.enabled ?? true)
+                .onChange(async (value) => {
+                    if (!this.plugin.settings.cache) {
+                        this.plugin.settings.cache = {
+                            maxSize: 10000,
+                            maxAge: 24 * 60 * 60 * 1000,
+                            enabled: value,
+                            persistToDisk: true
+                        };
+                    } else {
+                        this.plugin.settings.cache.enabled = value;
+                    }
+                    await this.plugin.saveSettings();
+                }));
+
+        if (this.plugin.settings.cache?.enabled) {
+            new Setting(containerEl)
+                .setName('Cache Size')
+                .setDesc('Maximum number of entries to keep in cache')
+                .addText(text => text
+                    .setPlaceholder('10000')
+                    .setValue(String(this.plugin.settings.cache?.maxSize || 10000))
+                    .onChange(async (value) => {
+                        const size = parseInt(value);
+                        if (!isNaN(size) && size > 0) {
+                            if (!this.plugin.settings.cache) {
+                                this.plugin.settings.cache = {
+                                    maxSize: size,
+                                    maxAge: 24 * 60 * 60 * 1000,
+                                    enabled: true,
+                                    persistToDisk: true
+                                };
+                            } else {
+                                this.plugin.settings.cache.maxSize = size;
+                            }
+                            if (this.plugin.noteCacheManager) {
+                                this.plugin.noteCacheManager.setMaxSize(size);
+                            }
+                            await this.plugin.saveSettings();
+                        }
+                    }));
+
+            new Setting(containerEl)
+                .setName('Cache Entry Lifetime')
+                .setDesc('How long to keep entries in cache (in hours)')
+                .addText(text => text
+                    .setPlaceholder('24')
+                    .setValue(String((this.plugin.settings.cache?.maxAge || 24 * 60 * 60 * 1000) / (60 * 60 * 1000)))
+                    .onChange(async (value) => {
+                        const hours = parseInt(value);
+                        if (!isNaN(hours) && hours > 0) {
+                            const maxAge = hours * 60 * 60 * 1000;
+                            if (!this.plugin.settings.cache) {
+                                this.plugin.settings.cache = {
+                                    maxSize: 10000,
+                                    maxAge: maxAge,
+                                    enabled: true,
+                                    persistToDisk: true
+                                };
+                            } else {
+                                this.plugin.settings.cache.maxAge = maxAge;
+                            }
+                            if (this.plugin.noteCacheManager) {
+                                this.plugin.noteCacheManager.setMaxAge(maxAge);
+                            }
+                            await this.plugin.saveSettings();
+                        }
+                    }));
+
+            new Setting(containerEl)
+                .setName('Persist Cache')
+                .setDesc('Save cache to disk between sessions')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.cache?.persistToDisk ?? true)
+                    .onChange(async (value) => {
+                        if (!this.plugin.settings.cache) {
+                            this.plugin.settings.cache = {
+                                maxSize: 10000,
+                                maxAge: 24 * 60 * 60 * 1000,
+                                enabled: true,
+                                persistToDisk: value
+                            };
+                        } else {
+                            this.plugin.settings.cache.persistToDisk = value;
+                        }
+                        await this.plugin.saveSettings();
+                    }));
+
+            // Display cache stats if available
+            if (this.plugin.noteCacheManager && 'getStats' in this.plugin.noteCacheManager) {
+                const stats = this.plugin.noteCacheManager.getStats();
+                const statsEl = containerEl.createEl('div', { cls: 'setting-item-description' });
+                statsEl.createEl('p', { text: `Cache Stats:` });
+                statsEl.createEl('p', { text: `Size: ${stats.size}/${stats.maxSize} entries` });
+                statsEl.createEl('p', { text: `Hits: ${stats.hits}` });
+                statsEl.createEl('p', { text: `Misses: ${stats.misses}` });
+                statsEl.createEl('p', { text: `Evictions: ${stats.evictions}` });
+            }
+        }
     }
 }
