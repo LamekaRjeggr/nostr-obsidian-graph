@@ -35,6 +35,7 @@ export interface UnifiedFetchSettings {
         customStartDate?: number;
         customEndDate?: number;
         batchSize: number;
+        keywords?: string[];
     };
 
     // Hex fetch settings
@@ -82,7 +83,8 @@ export const DEFAULT_UNIFIED_SETTINGS: UnifiedFetchSettings = {
         scope: SearchScope.DIRECT_FOLLOWS,
         timeRange: TimeRange.ALL_TIME,
         contentType: ContentType.ALL,
-        batchSize: 1000
+        batchSize: 1000,
+        keywords: []
     },
     hexFetch: {
         batchSize: 50,

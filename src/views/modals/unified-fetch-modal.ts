@@ -1,7 +1,8 @@
-import { App, Modal, Setting } from 'obsidian';
+import { App, Modal, Setting, ButtonComponent, Notice } from 'obsidian';
 import { UnifiedFetchProcessor } from '../../services/fetch/unified-fetch-processor';
 import { UnifiedFetchSettings, DEFAULT_UNIFIED_SETTINGS } from './unified-settings';
 import { SearchScope, TimeRange, ContentType } from './types';
+import { EventKinds } from '../../services/core/base-event-handler';
 
 export class UnifiedFetchModal extends Modal {
     private settings: UnifiedFetchSettings;
@@ -252,6 +253,17 @@ export class UnifiedFetchModal extends Modal {
             this.settings.search = DEFAULT_UNIFIED_SETTINGS.search;
         }
 
+        // Add keyword input
+        new Setting(container)
+            .setName('Search Keywords')
+            .setDesc('Enter keywords to search for (comma-separated)')
+            .addText(text => text
+                .setValue(this.settings.search!.keywords?.join(', ') || '')
+                .onChange(async value => {
+                    this.settings.search!.keywords = value.split(',').map(k => k.trim()).filter(k => k);
+                    await this.onSubmit(this.settings);
+                }));
+
         new Setting(container)
             .setName('Search Scope')
             .setDesc('Scope of search')
@@ -312,6 +324,47 @@ export class UnifiedFetchModal extends Modal {
                         await this.onSubmit(this.settings);
                     }
                 }));
+
+        // Add search button
+        const buttonContainer = container.createDiv();
+        buttonContainer.style.textAlign = 'center';
+        buttonContainer.style.marginTop = '20px';
+
+        const searchButton = new ButtonComponent(buttonContainer)
+            .setButtonText('Search')
+            .onClick(async () => {
+                if (!this.settings.search?.keywords?.length) {
+                    new Notice('Please enter search keywords');
+                    return;
+                }
+
+                try {
+                    await this.fetchProcessor.fetchWithOptions({
+                        kinds: [EventKinds.NOTE],
+                        search: this.settings.search.keywords,
+                        limit: this.settings.search.batchSize,
+                        useStream: true,
+                        enhanced: {
+                            titles: true,
+                            reactions: true
+                        }
+                    });
+                    new Notice('Search completed');
+                } catch (error) {
+                    console.error('Search error:', error);
+                    new Notice(`Search error: ${error.message}`);
+                }
+            });
+
+        // Style the button
+        const buttonEl = searchButton.buttonEl;
+        buttonEl.style.backgroundColor = 'var(--interactive-accent)';
+        buttonEl.style.color = 'var(--text-on-accent)';
+        buttonEl.style.padding = '8px 16px';
+        buttonEl.style.borderRadius = '4px';
+        buttonEl.style.cursor = 'pointer';
+        buttonEl.style.border = 'none';
+        buttonEl.style.width = '150px';
     }
 
     onClose() {
