@@ -88,6 +88,11 @@ src/
 - **Interfaces**: Define contracts for validators, managers, and handlers
 - **Handlers**: Process different types of events with specialized components
 - **Services**: Core functionality like relay connections and file operations
+- **Contact Graph**: Manages contact relationships and follows
+  - Direct follows tracking
+  - Follows-of-follows support
+  - Profile data integration
+  - Contact event validation
 
 ### Event Bus Layer
 - **NostrEventBus**: Central event management system
@@ -184,6 +189,12 @@ Request → UnifiedFetchProcessor → Relay Query → Processing → Storage
            ↓                        ↓             ↓           ↓
         Build        Query Multiple     Process    Save to
         Filters         Relays          Results    Files
+           ↓
+     Contact Graph
+     Integration
+        ↓
+    Profile Data
+     Processing
 ```
 
 ### Poll Event Flow
@@ -210,6 +221,11 @@ Reaction → EventBus → ReactionProcessor → State Update → File Update
 - Node-based fetch: Fully migrated to unified processor
 - Reactions: Migrated to event bus
 - Polls: Using event bus system
+- Contact processing: Integrated with unified processor
+  - Contact graph support
+  - Profile data handling
+  - Follow relationship tracking
+  - Event validation
 
 ## Future Improvements
 
@@ -230,6 +246,8 @@ Reaction → EventBus → ReactionProcessor → State Update → File Update
    - Profile analytics
    - Poll visualization
    - Interactive graph views
+   - Contact graph visualization
+   - Follow relationship analytics
 
 4. Architecture:
    - Complete modular processor system

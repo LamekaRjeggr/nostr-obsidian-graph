@@ -1,4 +1,6 @@
-import { NostrEvent, TagType, FetchOptions, EnhancedMetadataOptions } from '../../types';
+import { NostrEvent, TagType, FetchOptions, EnhancedMetadataOptions, ContactOptions, ThreadContext } from '../../types';
+import { ContactGraphService } from '../contacts/contact-graph-service';
+import { EventStreamHandler } from '../../core/event-stream-handler';
 import { TagProcessor } from '../processors/tag-processor';
 import { ReferenceProcessor } from '../processors/reference-processor';
 import { RelayService } from '../core/relay-service';
@@ -7,7 +9,6 @@ import { App, Notice } from 'obsidian';
 import { ValidationService } from '../validation-service';
 import { FileService } from '../core/file-service';
 import { EventKinds } from '../core/base-event-handler';
-import { ThreadContext } from '../../experimental/event-bus/types';
 import { NodeFetchHandler } from './handlers/node-fetch-handler';
 import { NoteCacheManager } from '../file/cache/note-cache-manager';
 import { ContentProcessor } from '../file/utils/text-processor';
@@ -23,6 +24,8 @@ export class UnifiedFetchProcessor {
     private pathUtils: PathUtils;
     private reactionProcessor: ReactionProcessor;
     private eventService: EventService;
+    private streamHandler: EventStreamHandler;
+    private contactGraphService: ContactGraphService;
 
     constructor(
         private relayService: RelayService,
@@ -30,6 +33,7 @@ export class UnifiedFetchProcessor {
         private fileService: FileService,
         private app: App
     ) {
+        this.contactGraphService = new ContactGraphService(relayService);
         this.tagProcessor = new TagProcessor();
         this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
         this.eventService = new EventService();
@@ -38,6 +42,104 @@ export class UnifiedFetchProcessor {
         this.noteCacheManager = new NoteCacheManager();
         this.pathUtils = new PathUtils(app);
         this.reactionProcessor = new ReactionProcessor(this.eventService, app, fileService);
+        
+        // Initialize stream handler
+        this.streamHandler = new EventStreamHandler();
+        this.registerHandlers();
+    }
+
+    private registerHandlers(): void {
+        // Register handlers in priority order
+        this.streamHandler.registerHandler({
+            kind: EventKinds.METADATA,
+            priority: 1,
+            process: async (event) => {
+                const metadata = JSON.parse(event.content);
+                await this.fileService.saveProfile({
+                    pubkey: event.pubkey,
+                    ...metadata
+                });
+            },
+            validate: (event) => {
+                try {
+                    JSON.parse(event.content);
+                    return true;
+                } catch {
+                    return false;
+                }
+            },
+            cleanup: async () => {
+                // No cleanup needed for metadata
+            }
+        });
+
+        this.streamHandler.registerHandler({
+            kind: EventKinds.CONTACT,
+            priority: 2,
+            process: async (event) => {
+                const contacts = event.tags
+                    .filter(tag => tag[0] === 'p')
+                    .map(tag => tag[1]);
+                await this.processContacts(event.pubkey, contacts);
+            },
+            validate: (event) => {
+                return event.tags.some(tag => tag[0] === 'p');
+            },
+            cleanup: async () => {
+                // No cleanup needed for contacts
+            }
+        });
+
+        this.streamHandler.registerHandler({
+            kind: EventKinds.NOTE,
+            priority: 3,
+            process: async (event) => {
+                const refResults = await this.referenceProcessor.process(event);
+                const tagResults = this.tagProcessor.process(event);
+                await this.fileService.saveNote(event, {
+                    references: [
+                        ...(tagResults.root ? [{
+                            targetId: tagResults.root,
+                            type: TagType.ROOT,
+                            marker: 'root'
+                        }] : []),
+                        ...(tagResults.replyTo ? [{
+                            targetId: tagResults.replyTo,
+                            type: TagType.REPLY,
+                            marker: 'reply'
+                        }] : []),
+                        ...tagResults.references.map(id => ({
+                            targetId: id,
+                            type: TagType.MENTION
+                        }))
+                    ],
+                    referencedBy: refResults.nostr.incoming.map(id => ({
+                        targetId: id,
+                        type: TagType.MENTION
+                    }))
+                });
+            },
+            validate: (event) => {
+                return event.content.trim().length > 0;
+            },
+            cleanup: async () => {
+                // No cleanup needed for notes
+            }
+        });
+
+        this.streamHandler.registerHandler({
+            kind: EventKinds.REACTION,
+            priority: 4,
+            process: async (event) => {
+                await this.reactionProcessor.process(event);
+            },
+            validate: (event) => {
+                return event.tags.some(tag => tag[0] === 'e');
+            },
+            cleanup: async () => {
+                // No cleanup needed for reactions
+            }
+        });
     }
 
     setNodeFetchHandler(handler: NodeFetchHandler) {
@@ -77,7 +179,45 @@ export class UnifiedFetchProcessor {
         return metadata;
     }
 
-    async fetchWithOptions(options: FetchOptions): Promise<NostrEvent[]> {
+    private async processContacts(pubkey: string, contacts: string[], options?: ContactOptions): Promise<void> {
+        // Initialize contact graph if needed
+        if (!this.contactGraphService.isInitialized()) {
+            await this.contactGraphService.initialize(pubkey);
+        }
+
+        // Process contacts through stream handler
+        const contactEvent: NostrEvent = {
+            id: 'local-' + Math.random().toString(36).slice(2),
+            kind: EventKinds.CONTACT,
+            pubkey,
+            content: '',
+            tags: contacts.map(c => ['p', c]),
+            created_at: Math.floor(Date.now() / 1000),
+            sig: 'local'
+        };
+        await this.streamHandler.processEvent(contactEvent as NostrEvent);
+
+        // Fetch profiles if requested
+        if (options?.fetchProfiles) {
+            const directFollows = this.contactGraphService.getDirectFollows();
+            if (directFollows.length > 0) {
+                await this.fetchWithOptions({
+                    kinds: [EventKinds.METADATA],
+                    authors: directFollows,
+                    skipSave: !options.linkInGraph,
+                    limit: directFollows.length
+                });
+            }
+        }
+    }
+
+    private async fetchWithStream(options: FetchOptions): Promise<NostrEvent[]> {
+        const events = await this.fetchWithOptions({ ...options, useStream: false });
+        await this.streamHandler.processEvents(events);
+        return events;
+    }
+
+    async fetchWithOptions(options: FetchOptions & { useStream?: boolean }): Promise<NostrEvent[]> {
         try {
             if (options.author && !ValidationService.validateHex(options.author)) {
                 throw new Error('Invalid hex key format');
@@ -88,7 +228,7 @@ export class UnifiedFetchProcessor {
             if (options.contacts?.include && options.author) {
                 const contacts = await this.fetchContacts(options.author);
                 
-                if (options.contacts.fetchProfiles) {
+                if (options.contacts.fetchProfiles && contacts.length > 0) {
                     await this.fetchWithOptions({
                         kinds: [EventKinds.METADATA],
                         limit: contacts.length,
@@ -124,6 +264,10 @@ export class UnifiedFetchProcessor {
                 : events;
 
             new Notice(`Found ${filteredEvents.length} matching events`);
+
+            if (options.useStream) {
+                await this.streamHandler.processEvents(filteredEvents);
+            }
 
             if (!options.skipSave) {
                 for (const event of filteredEvents) {

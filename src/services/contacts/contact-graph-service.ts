@@ -5,12 +5,16 @@ import { EventKinds } from '../core/base-event-handler';
 export class ContactGraphService {
     private directFollows: Set<string> = new Set();
     private followsOfFollows: Set<string> = new Set();
-    private initialized: boolean = false;
+    private _initialized: boolean = false;
 
     constructor(private relayService: RelayService) {}
 
+    isInitialized(): boolean {
+        return this._initialized;
+    }
+
     async initialize(userPubkey: string): Promise<void> {
-        if (this.initialized) return;
+        if (this._initialized) return;
 
         // Get direct follows from contact list (kind 3)
         const contactList = await this.relayService.subscribe([{
@@ -44,7 +48,7 @@ export class ContactGraphService {
             });
         }
 
-        this.initialized = true;
+        this._initialized = true;
     }
 
     isDirectFollow(pubkey: string): boolean {
@@ -66,6 +70,6 @@ export class ContactGraphService {
     clear(): void {
         this.directFollows.clear();
         this.followsOfFollows.clear();
-        this.initialized = false;
+        this._initialized = false;
     }
 }

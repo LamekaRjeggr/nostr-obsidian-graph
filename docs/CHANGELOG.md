@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.87.0] - 2024-12-30
+### Added
+- Integrated ContactGraphService with UnifiedFetchProcessor
+- Contact relationship tracking with direct follows and follows-of-follows
+- Contact event validation and processing
+- Profile data integration with contact graph
+- Improved contact metadata handling
+
+### Changed
+- Enhanced UnifiedFetchProcessor with contact graph support
+- Improved profile fetching with contact context
+- Better contact event validation
+- More efficient profile data handling
+
+### Architecture
+- Added ContactGraphService for relationship management
+- Integrated contact processing with event bus system
+- Enhanced stream handler with contact support
+- Improved documentation in STRUCTURE.md
+
 ## [0.86.9] - 2024-12-29
 ### Added
 - Reference-based thread fetching system

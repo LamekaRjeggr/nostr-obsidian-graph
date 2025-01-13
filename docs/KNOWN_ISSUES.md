@@ -39,14 +39,23 @@ Previous issue with chronological linking has been resolved:
    - Profile fetching could be optimized
    - Batch processing improvements needed
 
-4. Fetch System Architecture
-   - Parallel fetch implementations with overlapping functionality
-   - Duplicated contact fetching logic across components
-   - Separate batching strategies in different processors
-   - Right-click operations tied to legacy FetchProcessor
+4. Contact Processing
+   - Contact graph initialization can be slow for large follow lists
+   - Memory usage increases with contact graph size
+   - Profile fetching for large contact lists needs optimization
+   - Contact event validation could be more robust
+   - Need better error handling for contact graph operations
+   - Contact metadata persistence between sessions
+
+5. Fetch System Architecture
+   - ✓ Contact fetching now unified through ContactGraphService
+   - ✓ Profile fetching integrated with contact graph
+   - ✓ Contact event validation improved
+   - Remaining parallel fetch implementations need consolidation
+   - Right-click operations still tied to legacy FetchProcessor
    - Complex metadata handling split across processors
 
-5. Integration Challenges
+6. Integration Challenges
    - Metadata handling differences between processors
    - Event stream vs batch processing trade-offs
    - Complex state management in UnifiedFetchProcessor
