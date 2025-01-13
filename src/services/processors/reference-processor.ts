@@ -172,7 +172,7 @@ export class ReferenceProcessor implements IReference {
                     ...(tagResults.root ? [tagResults.root] : []),
                     ...(tagResults.replyTo ? [tagResults.replyTo] : [])
                 ],
-                incoming: [] // To be populated by reference store
+                incoming: [] // To be populated by tag processor during event processing
             },
             obsidian: obsidianRefs,
             metadata: {

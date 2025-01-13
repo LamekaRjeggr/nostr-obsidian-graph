@@ -60,7 +60,7 @@ export class FetchProcessor {
         );
     }
 
-    getReferenceStore(): ReferenceProcessor {
+    getReferenceProcessor(): ReferenceProcessor {
         return this.referenceProcessor;
     }
 

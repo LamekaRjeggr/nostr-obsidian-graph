@@ -7,9 +7,18 @@
 - Profile-based thread fetch functionality
 - ReferenceProcessor integration for efficient reference tracking
 
+### Architecture
+- Maintained dual fetch processors for different use cases:
+  - UnifiedFetchProcessor for bulk operations
+  - FetchProcessor for interactive operations
+- Enhanced metadata handling in both processors
+- Improved thread context management
+
 ### Known Issues
 - Vault-wide thread fetch not yet functional
 - Need to investigate vault-wide reference scanning
+- Processor synchronization challenges
+- Metadata handling differences between processors
 
 ## [0.86.8] - 2024-12-28
 ### Changed

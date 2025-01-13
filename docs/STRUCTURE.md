@@ -130,13 +130,22 @@ src/
   - State persistence
 
 ### Fetch Layer
-- **UnifiedFetchProcessor**: Central fetch operations manager
+- **UnifiedFetchProcessor**: Bulk operations manager
   - Configurable fetch options
   - Filtering capabilities
   - Event type handling
   - Relay optimization
   - Thread context support
+  - Batch processing
   - Direct Obsidian API integration
+
+- **FetchProcessor**: Interactive operations manager
+  - Stream-based event handling
+  - Real-time metadata updates
+  - Direct event processing
+  - Right-click operation support
+  - Event chain management
+
 - **Specialized Handlers**:
   - HexFetchHandler: Author-specific fetches (up to 500 notes)
   - ThreadFetchHandler: Thread context fetches
@@ -145,6 +154,19 @@ src/
   - ContactHandler: Follow relationship management
   - ProfileHandler: Profile data management
   - NoteHandler: Note content management
+
+### Processor Integration
+- **Event Flow**:
+  - UnifiedFetchProcessor: Batch → Process → Store
+  - FetchProcessor: Stream → Process → Update
+  - Shared ReferenceProcessor for relationships
+  - Common TagProcessor for nostr tags
+
+- **State Management**:
+  - Metadata handled differently per processor
+  - References shared through ReferenceProcessor
+  - Thread context maintained across processors
+  - Cache management varies by approach
 
 ## Event Flow
 

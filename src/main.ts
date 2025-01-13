@@ -186,7 +186,7 @@ export default class NostrPlugin extends Plugin {
         // Initialize node fetch handler
         const nodeFetchHandler = new NodeFetchHandler(
             this.eventService,
-            this.fetchService.getReferenceStore(),
+            this.fetchService.getReferenceProcessor(),
             this.unifiedFetchProcessor,
             this.app,
             {
@@ -288,7 +288,7 @@ export default class NostrPlugin extends Plugin {
             id: 'fetch-mentioned-profiles',
             name: 'Fetch Mentioned Profiles',
             callback: async () => {
-                const mentions = this.fetchService.getReferenceStore().getAllMentions();
+                const mentions = this.fetchService.getReferenceProcessor().getAllMentions();
                 if (mentions.length === 0) return;
                     
                 await this.mentionedProfileFetcher.fetchMentionedProfiles(mentions);

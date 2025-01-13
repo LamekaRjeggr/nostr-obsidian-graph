@@ -16,7 +16,7 @@ export class NoteReferenceManager {
             
         if (references.length === 0) return;
 
-        // Process each reference to maintain chronological order
+        // Process each reference based on tag relationships
         references.forEach(refId => {
             // Current event references the previous one
             this.referenceMap.set(event.id, {

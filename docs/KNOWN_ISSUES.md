@@ -38,3 +38,17 @@ Previous issue with chronological linking has been resolved:
    - Large thread fetches can be slow
    - Profile fetching could be optimized
    - Batch processing improvements needed
+
+4. Fetch System Architecture
+   - Parallel fetch implementations with overlapping functionality
+   - Duplicated contact fetching logic across components
+   - Separate batching strategies in different processors
+   - Right-click operations tied to legacy FetchProcessor
+   - Complex metadata handling split across processors
+
+5. Integration Challenges
+   - Metadata handling differences between processors
+   - Event stream vs batch processing trade-offs
+   - Complex state management in UnifiedFetchProcessor
+   - Performance implications of different approaches
+   - Error handling inconsistencies

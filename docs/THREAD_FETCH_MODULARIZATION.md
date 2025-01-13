@@ -8,6 +8,34 @@
 - UnifiedFetchProcessor: Handles relay communication
 - FileService: Manages file operations
 
+### Processor Interactions
+- UnifiedFetchProcessor:
+  - Handles bulk thread operations
+  - Manages thread context through options
+  - Provides batch-oriented processing
+  - Better suited for large-scale operations
+  - Used by ThreadFetchService
+
+- FetchProcessor:
+  - Handles interactive operations
+  - Provides immediate event processing
+  - Better for real-time updates
+  - Used for right-click operations
+  - Stream-based event handling
+
+### Integration Points
+- Thread Context:
+  - Shared between processors
+  - Maintained by ReferenceProcessor
+  - Updated through both streams and batches
+  - Critical for consistency
+
+- Metadata Management:
+  - Different approaches per processor
+  - Needs careful synchronization
+  - Affects thread relationship tracking
+  - Impacts performance characteristics
+
 ### Working Features
 - Single note thread fetch
 - Profile-based thread fetch

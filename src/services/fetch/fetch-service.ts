@@ -31,8 +31,8 @@ export class FetchService {
         this.processor = new FetchProcessor(settings, relayService, eventService, fileService, app);
     }
 
-    getReferenceStore(): ReferenceProcessor {
-        return this.processor.getReferenceStore();
+    getReferenceProcessor(): ReferenceProcessor {
+        return this.processor.getReferenceProcessor();
     }
 
     private async initialize() {
