@@ -1,4 +1,4 @@
-import { SearchScope, TimeRange, ContentType } from './types';
+import { SearchScope, TimeRange, ContentType } from '../../experimental/event-bus/types';
 
 export interface UnifiedFetchSettings {
     // Core settings

@@ -18,7 +18,7 @@ import { NostrEventBus } from '../../experimental/event-bus/event-bus';
 
 export class UnifiedFetchService {
     private processor: UnifiedFetchProcessor;
-    private currentCount: number = 0;
+    private currentCount: number;
     private initialized = false;
 
     constructor(
@@ -29,6 +29,7 @@ export class UnifiedFetchService {
         private app: App,
         private plugin: NostrPlugin
     ) {
+        this.currentCount = settings.notesPerProfile || 50;
         const eventBus = NostrEventBus.getInstance({ enableLogging: true });
         this.processor = new UnifiedFetchProcessor(relayService, eventBus, fileService, app, eventService);
     }
@@ -163,7 +164,7 @@ export class UnifiedFetchService {
     }
 
     reset(): void {
-        this.currentCount = 0;
+        this.currentCount = this.settings.notesPerProfile || 50;
         this.processor.reset();
     }
 }
