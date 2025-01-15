@@ -25,6 +25,9 @@ export interface TagProcessorOptions {
  */
 export class TagProcessor {
     process(event: Event, options: TagProcessorOptions = {}): TagResult {
+        console.log('[TagProcessor] Processing event:', event.id);
+        console.log('[TagProcessor] Event tags:', event.tags);
+        
         const result: TagResult = {
             mentions: [],
             references: [],
@@ -34,6 +37,7 @@ export class TagProcessor {
         
         event.tags.forEach(tag => {
             const [type, ...params] = tag;
+            console.log('[TagProcessor] Processing tag:', { type, params });
             
             switch (type) {
                 case 'e': {
@@ -42,10 +46,13 @@ export class TagProcessor {
                         // Handle thread references
                         if (marker === 'root') {
                             result.root = targetId;
+                            console.log('[TagProcessor] Found root reference:', targetId);
                         } else if (marker === 'reply') {
                             result.replyTo = targetId;
+                            console.log('[TagProcessor] Found reply reference:', targetId);
                         } else {
                             result.references.push(targetId);
+                            console.log('[TagProcessor] Found general reference:', targetId);
                         }
                         
                         // Store relay hint if enabled and provided
@@ -58,6 +65,7 @@ export class TagProcessor {
                 case 'p': {
                     const [targetId, relayHint] = params;
                     if (targetId) {
+                        console.log('[TagProcessor] Found mention:', targetId);
                         result.mentions.push(targetId);
                         if (options.includeRelayHints && relayHint) {
                             result.relayHints.set(targetId, relayHint);

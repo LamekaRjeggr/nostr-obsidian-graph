@@ -84,14 +84,18 @@ export class ReferenceProcessor implements IReference {
      * Add a profile mention
      */
     addMention(pubkey: string): void {
+        console.log('[ReferenceProcessor] Adding mention:', pubkey);
         this.mentions.add(pubkey);
+        console.log('[ReferenceProcessor] Current mentions:', Array.from(this.mentions));
     }
 
     /**
      * Get all mentioned profiles
      */
     getAllMentions(): string[] {
-        return Array.from(this.mentions);
+        const mentions = Array.from(this.mentions);
+        console.log('[ReferenceProcessor] Getting all mentions:', mentions);
+        return mentions;
     }
 
     /**
@@ -156,11 +160,16 @@ export class ReferenceProcessor implements IReference {
      * Process references for a nostr event
      */
     async process(event: Event): Promise<ReferenceResult> {
+        console.log('[ReferenceProcessor] Processing event:', event.id);
         // Get tag-based references using TagProcessor
         const tagResults = this.tagProcessor.process(event);
+        console.log('[ReferenceProcessor] Tag processing results:', tagResults);
 
         // Add mentions to the mentions set
-        tagResults.mentions.forEach(pubkey => this.addMention(pubkey));
+        tagResults.mentions.forEach(pubkey => {
+            console.log('[ReferenceProcessor] Processing mention from tags:', pubkey);
+            this.addMention(pubkey);
+        });
 
         // Process Obsidian links from content
         const obsidianRefs = await this.processObsidianRefs(event.content);

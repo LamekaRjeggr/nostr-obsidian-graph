@@ -362,10 +362,17 @@ export default class NostrPlugin extends Plugin {
             id: 'fetch-mentioned-profiles',
             name: 'Fetch Mentioned Profiles',
             callback: async () => {
+                console.log('[NostrPlugin] Fetch mentioned profiles command triggered');
                 const mentions = this.unifiedFetchProcessor.getReferenceProcessor().getAllMentions();
-                if (mentions.length === 0) return;
+                console.log('[NostrPlugin] Found mentions:', mentions);
+                if (mentions.length === 0) {
+                    console.log('[NostrPlugin] No mentions found, returning');
+                    return;
+                }
                     
+                console.log('[NostrPlugin] Fetching profiles for mentions:', mentions);
                 await this.mentionedProfileFetcher.fetchMentionedProfiles(mentions);
+                console.log('[NostrPlugin] Finished fetching mentioned profiles');
             }
         });
 

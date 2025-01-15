@@ -22,11 +22,12 @@ export class FetchManager {
         private fileService: FileService,
         private app: App,
         private reactionProcessor: ReactionProcessor,
-        private eventService: EventService
+        private eventService: EventService,
+        referenceProcessor?: ReferenceProcessor
     ) {
         this.tagProcessor = new TagProcessor();
-        this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
-        this.eventStreamManager = new EventStreamManager(app, fileService, eventService, reactionProcessor);
+        this.referenceProcessor = referenceProcessor || new ReferenceProcessor(app, app.metadataCache);
+        this.eventStreamManager = new EventStreamManager(app, fileService, eventService, reactionProcessor, this.referenceProcessor);
         this.contactManager = new ContactManager(relayService, app, fileService, this.eventStreamManager);
     }
 
@@ -80,37 +81,7 @@ export class FetchManager {
 
             if (!options.skipSave) {
                 for (const event of filteredEvents) {
-                    const refResults = await this.referenceProcessor.process(event);
-                    const tagResults = this.tagProcessor.process(event);
-                    
-                    let metadata = {
-                        references: [
-                            ...(tagResults.root ? [{
-                                targetId: tagResults.root,
-                                type: TagType.ROOT,
-                                marker: 'root'
-                            }] : []),
-                            ...(tagResults.replyTo ? [{
-                                targetId: tagResults.replyTo,
-                                type: TagType.REPLY,
-                                marker: 'reply'
-                            }] : []),
-                            ...tagResults.references.map(id => ({
-                                targetId: id,
-                                type: TagType.MENTION
-                            })),
-                            ...tagResults.mentions.map(id => ({
-                                targetId: id,
-                                type: TagType.MENTION
-                            }))
-                        ],
-                        referencedBy: refResults.nostr.incoming.map(id => ({
-                            targetId: id,
-                            type: TagType.MENTION
-                        }))
-                    };
-
-                    // Use EventStreamManager for all events to ensure consistent handling
+                    // Process all events through EventStreamManager to ensure consistent handling
                     await this.eventStreamManager.processEvent(event);
 
                     // Process reactions if requested and it's a note event

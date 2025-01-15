@@ -18,11 +18,12 @@ export class EventStreamManager {
         private app: App,
         private fileService: FileService,
         private eventService: EventService,
-        private reactionProcessor: ReactionProcessor
+        private reactionProcessor: ReactionProcessor,
+        referenceProcessor?: ReferenceProcessor
     ) {
         this.streamHandler = new EventStreamHandler();
         this.tagProcessor = new TagProcessor();
-        this.referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
+        this.referenceProcessor = referenceProcessor || new ReferenceProcessor(app, app.metadataCache);
         this.registerHandlers();
     }
 
@@ -96,8 +97,19 @@ export class EventStreamManager {
             kind: EventKinds.NOTE,
             priority: 3,
             process: async (event) => {
+                console.log('[EventStreamManager] Processing note event:', event.id);
                 const refResults = await this.referenceProcessor.process(event);
+                console.log('[EventStreamManager] Reference processing results:', refResults);
+                
                 const tagResults = this.tagProcessor.process(event);
+                console.log('[EventStreamManager] Tag processing results:', tagResults);
+
+                // Add mentions from tag results to reference processor
+                tagResults.mentions.forEach(pubkey => {
+                    console.log('[EventStreamManager] Adding mention to reference processor:', pubkey);
+                    this.referenceProcessor.addMention(pubkey);
+                });
+
                 await this.fileService.saveNote(event, {
                     references: [
                         ...(tagResults.root ? [{

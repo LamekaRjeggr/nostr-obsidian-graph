@@ -5,6 +5,7 @@ import { NostrEventBus } from '../../experimental/event-bus/event-bus';
 import { FileService } from '../core/file-service';
 import { EventService } from '../core/event-service';
 import { ReactionProcessor } from '../processors/reaction-processor';
+import { ReferenceProcessor } from '../processors/reference-processor';
 import { EventStreamManager } from './managers/event-stream-manager';
 import { FetchManager } from './managers/fetch-manager';
 import { NodeFetchHandler } from './handlers/node-fetch-handler';
@@ -22,9 +23,12 @@ export class UnifiedFetchProcessor {
     ) {
         const reactionProcessor = new ReactionProcessor(eventService, app, fileService);
         
-        // Initialize core managers
-        this.eventStreamManager = new EventStreamManager(app, fileService, eventService, reactionProcessor);
-        this.fetchManager = new FetchManager(relayService, fileService, app, reactionProcessor, eventService);
+        // Create a single ReferenceProcessor instance to share
+        const referenceProcessor = new ReferenceProcessor(app, app.metadataCache);
+        
+        // Initialize core managers with shared ReferenceProcessor
+        this.eventStreamManager = new EventStreamManager(app, fileService, eventService, reactionProcessor, referenceProcessor);
+        this.fetchManager = new FetchManager(relayService, fileService, app, reactionProcessor, eventService, referenceProcessor);
     }
 
     async fetchWithOptions(options: FetchOptions & { useStream?: boolean }): Promise<NostrEvent[]> {
@@ -63,7 +67,7 @@ export class UnifiedFetchProcessor {
     }
 
     getReferenceProcessor() {
-        return this.eventStreamManager.getReferenceProcessor();
+        return this.fetchManager.getReferenceProcessor();
     }
 
     reset(): void {
