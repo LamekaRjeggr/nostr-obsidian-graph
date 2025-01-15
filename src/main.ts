@@ -37,14 +37,14 @@ const DEFAULT_PLUGIN_SETTINGS: NostrSettings = {
         { url: 'wss://nos.lol', enabled: true },
         { url: 'wss://relay.nostr.band', enabled: true }
     ],
-    notesPerProfile: 50,
-    batchSize: 50,
     notesDirectory: 'nostr/notes',  // Keep for backwards compatibility
     profilesDirectory: 'nostr/profiles',
     autoUpdate: false,
     updateInterval: 300,
-    includeOwnNotes: true,
     usePublicKeyAsFilename: false,
+    notesPerProfile: 50,  // Default from UnifiedFetchSettings
+    batchSize: 50,       // Default from UnifiedFetchSettings
+    includeOwnNotes: true, // Default from UnifiedFetchSettings
     directories: {
         main: 'nostr/notes',     // Primary directory for notes
         replies: 'nostr/replies' // Optional directory for replies

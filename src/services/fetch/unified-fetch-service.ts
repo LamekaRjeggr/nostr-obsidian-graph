@@ -18,7 +18,6 @@ import { NostrEventBus } from '../../experimental/event-bus/event-bus';
 
 export class UnifiedFetchService {
     private processor: UnifiedFetchProcessor;
-    private currentCount: number = 0;
     private initialized = false;
 
     constructor(
@@ -120,7 +119,7 @@ export class UnifiedFetchService {
             await this.processor.fetchWithOptions({
                 kinds: [EventKinds.NOTE],
                 author: hex,
-                limit: this.currentCount,
+                limit: this.settings.notesPerProfile,
                 contacts: {
                     include: true,
                     fetchProfiles: true,
@@ -163,7 +162,6 @@ export class UnifiedFetchService {
     }
 
     reset(): void {
-        this.currentCount = 0;
         this.processor.reset();
     }
 }
