@@ -1,6 +1,7 @@
 import { App, TFile } from 'obsidian';
 import { NostrEvent, TagType } from '../../../types';
 import { EventService } from '../../../services/core/event-service';
+import { KeyService } from '../../../services/core/key-service';
 import { BaseEventHandler, EventKinds, ProcessingPriority } from '../../../services/core/base-event-handler';
 import { TagProcessor } from '../../processors/tag-processor';
 import { ReferenceProcessor } from '../../../services/processors/reference-processor';
@@ -100,7 +101,13 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
 
     private extractPubkey(metadata: Record<string, any>): string | null {
         const frontmatter = metadata.frontmatter || {};
-        return frontmatter.pubkey || null;
+        const pubkey = frontmatter.aliases?.[0];
+        
+        // Validate hex format using KeyService
+        if (pubkey && KeyService.validateHex(pubkey)) {
+            return pubkey;
+        }
+        return null;
     }
 
     private extractEventId(metadata: Record<string, any>): string | null {
