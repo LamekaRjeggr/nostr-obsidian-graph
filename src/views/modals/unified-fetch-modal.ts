@@ -1,4 +1,6 @@
-import { App, Modal, Setting } from 'obsidian';
+import { App, Modal, Setting, Notice } from 'obsidian';
+import { NostrEventBus } from '../../experimental/event-bus/event-bus';
+import { NostrEventType } from '../../experimental/event-bus/types';
 import { UnifiedFetchProcessor } from '../../services/fetch/unified-fetch-processor';
 import { UnifiedFetchSettings, DEFAULT_UNIFIED_SETTINGS } from './unified-settings';
 import { SearchScope, TimeRange, ContentType } from './types';
@@ -252,6 +254,19 @@ export class UnifiedFetchModal extends Modal {
             this.settings.search = DEFAULT_UNIFIED_SETTINGS.search;
         }
 
+        // Add keyword input field
+        let keywords: string[] = [];
+        new Setting(container)
+            .setName('Keywords')
+            .setDesc('Enter keywords separated by commas')
+            .addText(text => text
+                .setPlaceholder('word1, word2, ...')
+                .onChange(value => {
+                    keywords = value.split(',')
+                        .map(k => k.trim())
+                        .filter(k => k.length > 0);
+                }));
+
         new Setting(container)
             .setName('Search Scope')
             .setDesc('Scope of search')
@@ -312,6 +327,35 @@ export class UnifiedFetchModal extends Modal {
                         await this.onSubmit(this.settings);
                     }
                 }));
+
+        // Add search button
+        const searchButton = container.createEl('button', {
+            text: 'Search',
+            cls: 'mod-cta'
+        });
+        searchButton.style.width = '100%';
+        searchButton.style.marginTop = '20px';
+        searchButton.onclick = () => {
+            if (keywords.length > 0) {
+                // Publish search event
+                NostrEventBus.getInstance().publish(
+                    NostrEventType.KEYWORD_SEARCH,
+                    {
+                        keywords: keywords,
+                        limit: this.settings.search!.batchSize,
+                        searchSettings: {
+                            scope: this.settings.search!.scope,
+                            timeRange: this.settings.search!.timeRange,
+                            contentType: this.settings.search!.contentType,
+                            searchBatchSize: this.settings.search!.batchSize
+                        }
+                    }
+                );
+                this.close();
+            } else {
+                new Notice('Please enter at least one keyword');
+            }
+        };
     }
 
     onClose() {
