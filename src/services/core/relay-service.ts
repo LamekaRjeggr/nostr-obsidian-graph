@@ -139,6 +139,15 @@ export class RelayService {
         try {
             console.log('[RelayService] Subscribing to events with filters:', filters);
             const events = await this.pool.list(Array.from(this.activeRelays), filters);
+            
+            // Apply total limit if specified in filter
+            const limit = filters[0]?.limit;
+            if (limit) {
+                const limitedEvents = events.slice(0, limit);
+                console.log(`[RelayService] Received ${events.length} events, limiting to ${limitedEvents.length}`);
+                return limitedEvents;
+            }
+            
             console.log(`[RelayService] Received ${events.length} events`);
             return events;
         } catch (error) {

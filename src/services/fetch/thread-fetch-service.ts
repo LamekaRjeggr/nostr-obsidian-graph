@@ -6,7 +6,8 @@ import {
     ThreadFetchOptions, 
     ThreadFetchProgress,
     TagType,
-    Reference
+    Reference,
+    UnifiedFetchSettings
 } from '../../types';
 import { ReferenceProcessor } from '../processors/reference-processor';
 import { UnifiedFetchProcessor } from './unified-fetch-processor';
@@ -22,11 +23,16 @@ export class ThreadFetchService {
         failed: 0
     };
 
+    updateSettings(settings: UnifiedFetchSettings) {
+        this.settings = settings;
+    }
+
     constructor(
         private unifiedFetchProcessor: UnifiedFetchProcessor,
         private fileService: FileService,
         private referenceProcessor: ReferenceProcessor,
-        private app: App
+        private app: App,
+        private settings: UnifiedFetchSettings
     ) {}
 
     /**
@@ -113,7 +119,7 @@ export class ThreadFetchService {
         }
     }
 
-    async fetchSingleThread(eventId: string, limit: number = 50, includeContext: boolean = true): Promise<void> {
+    async fetchSingleThread(eventId: string, limit?: number, includeContext: boolean = true): Promise<void> {
         try {
             // Validate event ID
             if (!ValidationService.validateHex(eventId)) {
@@ -122,7 +128,7 @@ export class ThreadFetchService {
             }
 
             // Fetch thread context
-            const context = await this.unifiedFetchProcessor.fetchThreadContext(eventId, limit);
+            const context = await this.unifiedFetchProcessor.fetchThreadContext(eventId, limit || this.settings.thread.limit);
             
             // Fetch and save root note if exists and context is requested
             if (includeContext && context.root) {
@@ -161,9 +167,11 @@ export class ThreadFetchService {
                 });
             }
 
-            // Fetch and save replies if they exist
+            // Fetch and save replies if they exist, respecting the limit
             if (context.replies && context.replies.length > 0) {
-                for (const replyId of context.replies) {
+                const effectiveLimit = limit || this.settings.thread.limit;
+                const limitedReplies = context.replies.slice(0, effectiveLimit);
+                for (const replyId of limitedReplies) {
                     const replyEvent = await this.unifiedFetchProcessor.fetchCompleteNote(replyId);
                     if (replyEvent) {
                         const replyRefs = this.createReferences(replyEvent.id, {
@@ -178,14 +186,16 @@ export class ThreadFetchService {
                 }
             }
 
-            new Notice(`Thread processed with ${context.replies?.length || 0} replies`);
+            const effectiveLimit = limit || this.settings.thread.limit;
+            const processedReplies = Math.min(context.replies?.length || 0, effectiveLimit);
+            new Notice(`Thread processed with ${processedReplies} replies (limited to ${effectiveLimit})`);
         } catch (error) {
             console.error('Error in thread fetch:', error);
             new Notice(`Error fetching thread: ${error.message}`);
         }
     }
 
-    async fetchAuthorThreads(authorId: string, limit: number = 50): Promise<void> {
+    async fetchAuthorThreads(authorId: string, limit?: number): Promise<void> {
         try {
             // Validate author ID
             if (!ValidationService.validateHex(authorId)) {
@@ -196,7 +206,7 @@ export class ThreadFetchService {
             // First fetch all notes from the author
             const authorNotes = await this.unifiedFetchProcessor.fetchWithOptions({
                 kinds: [EventKinds.NOTE],
-                limit: limit,
+                limit: limit || this.settings.thread.limit,
                 author: authorId
             });
 
@@ -253,7 +263,7 @@ export class ThreadFetchService {
         await Promise.all(promises);
     }
 
-    async fetchVaultThreads(batchSize: number = 50): Promise<void> {
+    async fetchVaultThreads(batchSize?: number): Promise<void> {
         try {
             // Reset progress
             this.resetProgress();
@@ -268,22 +278,23 @@ export class ThreadFetchService {
 
             // Set total for progress tracking
             this.progress.total = unfetchedIds.length;
-            new Notice(`Found ${unfetchedIds.length} unfetched references. Fetching in batches of ${batchSize}...`);
+            const effectiveBatchSize = batchSize || this.settings.thread.limit;
+            new Notice(`Found ${unfetchedIds.length} unfetched references. Fetching in batches of ${effectiveBatchSize}...`);
 
             // Calculate optimal number of concurrent batches based on available references
             const concurrentBatches = Math.min(
-                Math.ceil(unfetchedIds.length / batchSize),
+                Math.ceil(unfetchedIds.length / effectiveBatchSize),
                 3 // Maximum concurrent batches
             );
 
             // Process events in parallel batches
-            for (let i = 0; i < unfetchedIds.length; i += (batchSize * concurrentBatches)) {
+            for (let i = 0; i < unfetchedIds.length; i += (effectiveBatchSize * concurrentBatches)) {
                 const batchPromises = [];
                 
                 // Create concurrent batch promises
                 for (let j = 0; j < concurrentBatches; j++) {
-                    const start = i + (j * batchSize);
-                    const batch = unfetchedIds.slice(start, start + batchSize);
+                    const start = i + (j * effectiveBatchSize);
+                    const batch = unfetchedIds.slice(start, start + effectiveBatchSize);
                     if (batch.length > 0) {
                         batchPromises.push(this.processBatch(batch));
                     }
@@ -293,7 +304,7 @@ export class ThreadFetchService {
                 await Promise.all(batchPromises);
 
                 // Add a small delay between batch groups to avoid overwhelming relays
-                if (i + (batchSize * concurrentBatches) < unfetchedIds.length) {
+                if (i + (effectiveBatchSize * concurrentBatches) < unfetchedIds.length) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
 

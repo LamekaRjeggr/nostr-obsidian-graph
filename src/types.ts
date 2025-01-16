@@ -209,3 +209,10 @@ export interface CacheStats {
     size: number;
     maxSize: number;
 }
+
+export interface UnifiedFetchSettings {
+    thread: {
+        limit: number;
+        includeContext?: boolean;
+    };
+}

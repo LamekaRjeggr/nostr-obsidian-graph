@@ -203,7 +203,13 @@ export default class NostrPlugin extends Plugin {
             this.unifiedFetchProcessor,
             this.fileService,
             referenceProcessor,
-            this.app
+            this.app,
+            {
+                thread: {
+                    limit: this.settings.threadSettings?.limit || 50,
+                    includeContext: this.settings.threadSettings?.includeContext || true
+                }
+            }
         );
 
         // Initialize reaction processor
@@ -325,16 +331,34 @@ export default class NostrPlugin extends Plugin {
                     this.app,
                     unifiedSettings,
                     async (settings) => {
-                        // Update plugin settings from unified settings
+                        // Extract thread settings with defaults
+                        const threadSettings = {
+                            limit: settings.thread?.limit ?? DEFAULT_PLUGIN_SETTINGS.threadSettings!.limit,
+                            includeContext: settings.thread?.includeContext ?? DEFAULT_PLUGIN_SETTINGS.threadSettings!.includeContext
+                        };
+
+                        // Create unified settings with complete thread object
+                        const unifiedThreadSettings = {
+                            ...DEFAULT_UNIFIED_SETTINGS.thread!,
+                            ...threadSettings
+                        };
+                        
+                        // Update plugin settings
                         this.settings = {
                             ...this.settings,
                             notesPerProfile: settings.notesPerProfile,
                             batchSize: settings.batchSize,
                             includeOwnNotes: settings.includeOwnNotes,
                             hexFetch: settings.hexFetch,
-                            threadSettings: settings.thread
+                            threadSettings
                         };
                         await this.saveSettings();
+
+                        // Update thread fetch service with complete settings
+                        this.threadFetchService.updateSettings({
+                            ...settings,
+                            thread: unifiedThreadSettings
+                        });
                     },
                     this.unifiedFetchProcessor
                 ).open();
