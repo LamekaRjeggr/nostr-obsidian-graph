@@ -22,51 +22,51 @@ export class ThreadFetchService {
         failed: 0
     };
 
-constructor(
-    private unifiedFetchProcessor: UnifiedFetchProcessor,
-    private fileService: FileService,
-    private referenceProcessor: ReferenceProcessor,
-    private app: App
-) {}
+    constructor(
+        private unifiedFetchProcessor: UnifiedFetchProcessor,
+        private fileService: FileService,
+        private referenceProcessor: ReferenceProcessor,
+        private app: App
+    ) {}
 
-/**
- * Get event IDs that are referenced but not fetched yet
- */
-private async getUnfetchedReferences(): Promise<string[]> {
-    // Get all referenced event IDs
-    const allReferences = new Set<string>();
-    
-    // Get all notes from directories
-    const directories = await this.fileService.getNotesDirectories();
-    const noteFiles = (await Promise.all(
-        directories.map(dir => this.fileService.listFilesInDirectory(dir))
-    )).flat();
+    /**
+     * Get event IDs that are referenced but not fetched yet
+     */
+    private async getUnfetchedReferences(): Promise<string[]> {
+        // Get all referenced event IDs
+        const allReferences = new Set<string>();
+        
+        // Get all notes from directories
+        const directories = await this.fileService.getNotesDirectories();
+        const noteFiles = (await Promise.all(
+            directories.map(dir => this.fileService.listFilesInDirectory(dir))
+        )).flat();
 
-    // Process each note's references
-    for (const filePath of noteFiles) {
-        const metadata = await this.fileService.getNostrMetadata(filePath);
-        if (metadata?.id) {
-            // Add outgoing references
-            const outgoing = this.referenceProcessor.getOutgoingReferences(metadata.id);
-            outgoing.forEach(ref => allReferences.add(ref));
+        // Process each note's references
+        for (const filePath of noteFiles) {
+            const metadata = await this.fileService.getNostrMetadata(filePath);
+            if (metadata?.id) {
+                // Add outgoing references
+                const outgoing = this.referenceProcessor.getOutgoingReferences(metadata.id);
+                outgoing.forEach(ref => allReferences.add(ref));
 
-            // Add incoming references
-            const incoming = this.referenceProcessor.getIncomingReferences(metadata.id);
-            incoming.forEach(ref => allReferences.add(ref));
+                // Add incoming references
+                const incoming = this.referenceProcessor.getIncomingReferences(metadata.id);
+                incoming.forEach(ref => allReferences.add(ref));
+            }
         }
-    }
 
-    // Filter out events that already exist as files
-    const unfetchedIds: string[] = [];
-    for (const eventId of allReferences) {
-        const exists = await this.fileService.hasNote(eventId);
-        if (!exists) {
-            unfetchedIds.push(eventId);
+        // Filter out events that already exist as files
+        const unfetchedIds: string[] = [];
+        for (const eventId of allReferences) {
+            const exists = await this.fileService.hasNote(eventId);
+            if (!exists) {
+                unfetchedIds.push(eventId);
+            }
         }
-    }
 
-    return unfetchedIds;
-}
+        return unfetchedIds;
+    }
 
     private createReferences(eventId: string, context: { root?: string; parent?: string; }): Reference[] {
         const references: Reference[] = [];
