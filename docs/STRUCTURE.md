@@ -126,15 +126,17 @@ src/
 
 ### Poll System (NIP-1068)
 - **PollService**: Manages poll operations
-  - Creates and updates polls
-  - Processes votes
+  - Creates and updates polls (kind 1068)
+  - Processes votes (kind 1018)
   - Maintains poll state
   - Event bus integration
+  - One vote per pubkey enforcement
 - **Poll Features**:
   - Single/multiple choice support
-  - Real-time vote tracking
-  - Automatic file updates
-  - State persistence
+  - Real-time vote tracking with response tags
+  - Automatic file updates with frontmatter
+  - State persistence with validation
+  - Vote deduplication per user
 
 ### Fetch Layer
 - **UnifiedFetchProcessor**: Bulk operations manager
@@ -205,10 +207,16 @@ Request → UnifiedFetchProcessor → Relay Query → Processing → Storage
 
 ### Poll Event Flow
 ```
-Poll Event → Validation → State Check → Processing → File Update
-         ↓            ↓            ↓           ↓
-      Validate    Check State   Process    Update Poll
-      NIP-1068    & Cache      via Bus     File & State
+Poll Event (1068) → Validation → State Check → Processing → File Update
+         ↓              ↓            ↓            ↓            ↓
+      Validate      Check State   Process     Update Poll   Update File
+      NIP-1068      & Cache      via Bus      State        & Metadata
+
+Vote Event (1018) → Validation → Response Check → Vote Count → File Update
+         ↓              ↓             ↓             ↓            ↓
+      Validate      Check Poll    Validate      Update Poll   Save Poll
+      Response      Exists       Responses      Vote Count    to File
+      Tags
 ```
 
 ### Reaction Flow

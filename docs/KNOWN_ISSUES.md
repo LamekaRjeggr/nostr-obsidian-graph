@@ -68,7 +68,19 @@ Previous issue with chronological linking has been resolved:
    - ✓ Better error handling with event bus
    - ✓ Consistent npub/hex key handling
 
-7. Profile Processing
+7. Poll System
+   - ✓ Vote event handling updated to use kind 1018
+   - ✓ Response tag processing implemented
+   - ✓ Vote deduplication per user working
+   - ✓ Single/multiple choice validation improved
+   - Potential improvements needed:
+     * Vote event expiration handling
+     * Poll close event handling
+     * Vote count verification across relays
+     * Better error recovery for failed votes
+     * Vote event persistence strategy
+
+8. Profile Processing
    - ✓ Unified profile event handling through stream handler
    - ✓ Removed duplicate event handler in UnifiedFetchService
    - ✓ Fixed direct event emission in UnifiedFetchProcessor

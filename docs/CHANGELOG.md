@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.87.5] - 2024-01-16
+
+### Changed
+- Updated poll vote handling to use kind 1018 events with response tags
+- Improved vote processing with better validation and logging
+- Enhanced vote counting for multiple choice polls
+- Fixed vote event filtering in PollService
+
+### Fixed
+- Vote event handling now properly processes response tags
+- Vote counting accuracy for multiple responses
+- Vote validation for single/multiple choice polls
+- Vote event logging and error reporting
+
 ## [0.87.4] - 2024-01-15
 
 ### Added
