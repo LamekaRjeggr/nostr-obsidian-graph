@@ -1,7 +1,7 @@
-import { PollFrontmatter } from '../../../types';
+import { PollMetadata } from '../types';
 
 export class PollStateManager {
-    private polls: Map<string, PollFrontmatter>;
+    private polls: Map<string, PollMetadata>;
     private votes: Map<string, Set<string>>; // pollId -> Set of voter pubkeys
 
     constructor() {
@@ -9,12 +9,12 @@ export class PollStateManager {
         this.votes = new Map();
     }
 
-    addPoll(id: string, poll: PollFrontmatter): void {
+    addPoll(id: string, poll: PollMetadata): void {
         this.polls.set(id, poll);
         this.votes.set(id, new Set());
     }
 
-    getPoll(id: string): PollFrontmatter | undefined {
+    getPoll(id: string): PollMetadata | undefined {
         return this.polls.get(id);
     }
 
@@ -76,5 +76,9 @@ export class PollStateManager {
     clear(): void {
         this.polls.clear();
         this.votes.clear();
+    }
+
+    getAllPollIds(): string[] {
+        return Array.from(this.polls.keys());
     }
 }

@@ -30,10 +30,10 @@ export class VoteProcessor implements EventHandler {
                 return;
             }
 
-            // Get option IDs from option tags
-            const optionIds = this.getOptionIds(event);
-            if (optionIds.length === 0) {
-                console.error('No options found in vote event');
+            // Get response IDs from response tags
+            const responseIds = this.getResponseIds(event);
+            if (responseIds.length === 0) {
+                console.error('No responses found in vote event');
                 return;
             }
 
@@ -45,24 +45,24 @@ export class VoteProcessor implements EventHandler {
             }
 
             // Validate vote
-            if (!this.validateVote(poll, optionIds)) {
+            if (!this.validateVote(poll, responseIds)) {
                 return;
             }
 
             // Update poll with new vote
-            await this.updatePollWithVote(poll, optionIds);
+            await this.updatePollWithVote(poll, responseIds);
         } catch (error) {
             console.error('Error processing vote:', error);
         }
     }
 
     /**
-     * Only process vote events (kind 1068 with e and option tags)
+     * Only process vote events (kind 1018 with e and response tags)
      */
     filter(event: any): boolean {
-        return event.kind === 1068 && 
-               event.tags.some(tag => tag[0] === 'e') &&
-               event.tags.some(tag => tag[0] === 'option');
+        return event.kind === 1018 && 
+               event.tags.some((tag: string[]) => tag[0] === 'e') &&
+               event.tags.some((tag: string[]) => tag[0] === 'response');
     }
 
     /**
@@ -76,11 +76,11 @@ export class VoteProcessor implements EventHandler {
     }
 
     /**
-     * Get option IDs from event tags
+     * Get response IDs from event tags
      */
-    private getOptionIds(event: NostrVoteEvent): string[] {
+    private getResponseIds(event: NostrVoteEvent): string[] {
         return event.tags
-            .filter((tag): tag is ['option', string] => tag[0] === 'option')
+            .filter((tag): tag is ['response', string] => tag[0] === 'response')
             .map(tag => tag[1]);
     }
 
@@ -116,17 +116,20 @@ export class VoteProcessor implements EventHandler {
     /**
      * Validate vote against poll rules
      */
-    private validateVote(poll: PollData, optionIds: string[]): boolean {
+    private validateVote(poll: PollData, responseIds: string[]): boolean {
         // Check multiple choice rules
-        if (poll.pollType === 'singlechoice' && optionIds.length > 1) {
-            console.error(`Multiple votes not allowed for poll ${poll.id}`);
+        if (poll.pollType === 'singlechoice' && responseIds.length > 1) {
+            console.error(`Multiple responses not allowed for poll ${poll.id}`);
             return false;
         }
 
-        // Validate option IDs
+        // Validate response IDs
         const validOptionIds = new Set(poll.options.map(o => o.id));
-        if (!optionIds.every(id => validOptionIds.has(id))) {
-            console.error(`Invalid option IDs for poll ${poll.id}`);
+        if (!responseIds.every(id => validOptionIds.has(id))) {
+            console.error(`Invalid response IDs for poll ${poll.id}:`, {
+                responseIds,
+                validOptionIds: Array.from(validOptionIds)
+            });
             return false;
         }
 
@@ -138,13 +141,14 @@ export class VoteProcessor implements EventHandler {
      */
     private async updatePollWithVote(
         poll: PollData,
-        optionIds: string[]
+        responseIds: string[]
     ): Promise<void> {
         // Update vote counts
-        optionIds.forEach(optionId => {
-            const option = poll.options.find(o => o.id === optionId);
+        responseIds.forEach(responseId => {
+            const option = poll.options.find(o => o.id === responseId);
             if (option) {
                 option.votes++;
+                console.log(`[VoteProcessor] Incremented votes for option ${option.text} (${option.votes} total)`);
             }
         });
 

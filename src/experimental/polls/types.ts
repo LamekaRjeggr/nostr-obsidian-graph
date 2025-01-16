@@ -45,16 +45,16 @@ export interface NostrPollEvent {
  */
 export type NostrVoteTag =
     | ['e', string]           // [e, poll_id]
-    | ['option', string];     // [option, option_id]
+    | ['response', string];   // [response, option_id]
 
 /**
  * Raw Nostr vote event structure
  */
 export interface NostrVoteEvent {
-    content: '';              // Empty for votes
+    content: string;          // Optional, can match response ID
     created_at: number;
     id: string;
-    kind: 1068;              // Same kind as polls
+    kind: 1018;              // Poll vote event
     pubkey: string;
     sig: string;
     tags: NostrVoteTag[];
@@ -98,6 +98,7 @@ export interface PollMetadata {
     relays: string[];
     total_votes: number;
     nostr_tags: NostrPollTag[];
+    closed?: boolean;
 }
 
 /**

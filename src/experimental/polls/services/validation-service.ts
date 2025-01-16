@@ -86,49 +86,47 @@ export class PollValidationService {
                 id: event.id,
                 pubkey: event.pubkey,
                 kind: event.kind,
-                tags: event.tags
+                tags: event.tags,
+                content: event.content
             });
 
             // Check basic event structure
             if (!event.id || !event.pubkey || !event.tags) {
-                console.error('[ValidationService] Missing required vote event fields:', {
-                    hasId: !!event.id,
-                    hasPubkey: !!event.pubkey,
-                    hasTags: !!event.tags
-                });
+                console.error('[ValidationService] Missing required vote event fields');
                 return false;
             }
 
-            // Check kind (1068 for votes)
-            if (event.kind !== 1068) {
-                console.error('[ValidationService] Invalid event kind for vote:', {
-                    expectedKind: 1068,
-                    actualKind: event.kind
-                });
+            // Check kind (1018 for poll votes)
+            if (event.kind !== 1018) {
+                console.error('[ValidationService] Invalid event kind for vote');
                 return false;
             }
 
             // Check for poll reference
             const pollRef = event.tags.find(tag => tag[0] === 'e');
-            console.log('[ValidationService] Found poll reference:', pollRef);
-            
             if (!pollRef || !pollRef[1]) {
-                console.error('[ValidationService] Vote must reference a poll:', {
-                    hasRef: !!pollRef,
-                    hasId: pollRef ? !!pollRef[1] : false
-                });
+                console.error('[ValidationService] Vote must reference a poll');
                 return false;
             }
 
-            // Check for option selection
-            const optionRef = event.tags.find(tag => tag[0] === 'option');
-            console.log('[ValidationService] Found option reference:', optionRef);
-            
-            if (!optionRef || !optionRef[1]) {
-                console.error('[ValidationService] Vote must specify an option:', {
-                    hasOption: !!optionRef,
-                    hasId: optionRef ? !!optionRef[1] : false
-                });
+            // Check for response tags
+            const responseTags = event.tags.filter(tag => tag[0] === 'response');
+            if (responseTags.length === 0) {
+                console.error('[ValidationService] Vote must have at least one response tag');
+                return false;
+            }
+
+            // Validate response tags
+            for (const tag of responseTags) {
+                if (!tag[1]) {
+                    console.error('[ValidationService] Response tag must include option ID');
+                    return false;
+                }
+            }
+
+            // Check if content is empty or matches first response
+            if (event.content && !responseTags.some(tag => tag[1] === event.content)) {
+                console.error('[ValidationService] Content must be empty or match a response ID');
                 return false;
             }
 

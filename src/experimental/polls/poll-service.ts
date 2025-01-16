@@ -1,5 +1,6 @@
 import { App, Notice, TFile } from 'obsidian';
-import { NostrEvent, NostrSettings, PollFrontmatter, PollOption } from '../../types';
+import { NostrEvent, NostrSettings } from '../../types';
+import { PollOption, PollMetadata, PollType, NostrPollTag } from './types';
 import { EventEmitter } from '../../services/event-emitter';
 import { FileService } from '../../services/core/file-service';
 import { NostrEventBus } from '../event-bus/event-bus';
@@ -114,50 +115,70 @@ export class PollService {
         try {
             new Notice('Fetching polls...');
 
-            // Filter for kind 1068 events (polls and votes)
-            const filter: Partial<Filter> = {
-                kinds: [1068],
-                since: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60) // Last 30 days
-            };
-            
-            console.log('[PollService] Using filter:', filter);
-
-            // Subscribe to events
-            console.log('[PollService] Subscribing to relay events...');
-            const events = await this.relayService.subscribe([filter]);
-            console.log(`[PollService] Received ${events.length} kind 1068 events`);
-
-            // Process events
             let pollCount = 0;
             let voteCount = 0;
 
-            for (const event of events) {
-                // Check if it's a poll or vote event
-                const isPoll = !event.tags.some(tag => tag[0] === 'e');
-                
-                if (isPoll) {
-                    console.log('[PollService] Processing poll event:', {
-                        id: event.id,
-                        pubkey: event.pubkey,
-                        created_at: event.created_at,
-                        tags: event.tags
-                    });
-                    await this.eventBus.publish(NostrEventType.POLL, event);
-                    pollCount++;
-                } else {
-                    console.log('[PollService] Processing vote event:', {
-                        id: event.id,
-                        pubkey: event.pubkey,
-                        created_at: event.created_at,
-                        tags: event.tags
-                    });
-                    await this.eventBus.publish(NostrEventType.VOTE, event);
-                    voteCount++;
+            // First fetch all polls
+            const pollFilter: Partial<Filter> = {
+                kinds: [1068],  // Poll creation events
+                since: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60) // Last 30 days
+            };
+            
+            console.log('[PollService] Fetching polls with filter:', pollFilter);
+            const pollEvents = await this.relayService.subscribe([pollFilter]);
+            console.log(`[PollService] Received ${pollEvents.length} poll events`);
+
+            // Process all polls first
+            for (const event of pollEvents) {
+                console.log('[PollService] Processing poll event:', {
+                    id: event.id,
+                    pubkey: event.pubkey,
+                    created_at: event.created_at,
+                    tags: event.tags
+                });
+                await this.eventBus.publish(NostrEventType.POLL, event);
+                pollCount++;
+            }
+
+            // Now fetch votes for the polls we found
+            const voteFilter: Partial<Filter> = {
+                kinds: [1018],  // Poll vote events
+                since: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // Last 30 days
+                '#e': pollEvents.map(e => e.id) // Only fetch votes for our polls
+            };
+
+            console.log('[PollService] Fetching votes with filter:', voteFilter);
+            const voteEvents = await this.relayService.subscribe([voteFilter]);
+            console.log(`[PollService] Received ${voteEvents.length} vote events`);
+
+            // Group votes by pubkey and poll ID, keeping only the latest vote per user per poll
+            const latestVotes = new Map<string, NostrEvent>();
+            for (const event of voteEvents) {
+                const pollId = event.tags.find(tag => tag[0] === 'e')?.[1];
+                if (pollId) {
+                    const key = `${event.pubkey}-${pollId}`;
+                    if (!latestVotes.has(key) || event.created_at > latestVotes.get(key)!.created_at) {
+                        latestVotes.set(key, event);
+                    }
                 }
             }
 
+            // Process only the latest vote per user per poll
+            for (const event of latestVotes.values()) {
+                console.log('[PollService] Processing vote event:', {
+                    id: event.id,
+                    pubkey: event.pubkey,
+                    created_at: event.created_at,
+                    tags: event.tags
+                });
+                await this.eventBus.publish(NostrEventType.VOTE, event);
+                voteCount++;
+            }
+
+            console.log(`[PollService] Processed ${voteCount} votes`);
+
             console.log(`[PollService] Processed ${pollCount} polls and ${voteCount} votes`);
-            new Notice(`Found ${events.length} poll events (${pollCount} polls, ${voteCount} votes)`);
+            new Notice(`Found ${pollCount} polls and ${voteCount} votes`);
 
         } catch (error) {
             console.error('[PollService] Error fetching polls:', error);
@@ -218,32 +239,40 @@ export class PollService {
             const pollData = this.extractPollData(event);
             console.log('[PollService] Extracted poll data:', pollData);
             
-            // Create frontmatter
-            const frontmatter: PollFrontmatter = {
+            // Create metadata
+            const metadata: PollMetadata = {
                 id: event.id,
                 pubkey: event.pubkey,
-                created: event.created_at,
-                kind: event.kind,
+                author: '', // Will be filled by file service
+                created_at: event.created_at,
+                created_at_string: new Date(event.created_at * 1000).toISOString(),
+                kind: 1068,
                 question: pollData.question,
                 options: pollData.options,
                 poll_type: pollData.pollType,
+                relays: [],  // Will be filled by relay service
                 total_votes: 0,
-                closed: false,
-                nostr_tags: event.tags,
-                tags: event.tags
-                    .filter(tag => tag[0] === 't')
-                    .map(tag => tag[1])
+                nostr_tags: event.tags as NostrPollTag[]
+            };
+
+            // Convert metadata to frontmatter format
+            const frontmatter = {
+                id: metadata.id,
+                question: metadata.question,
+                options: metadata.options.map(opt => opt.text),
+                multiple_choice: metadata.poll_type === 'multichoice',
+                created_at: metadata.created_at
             };
 
             // Format content
-            const content = this.formatPollContent(frontmatter);
+            const content = this.formatPollContent(metadata);
             
             // Save poll using FileService
             await this.fileService.savePoll(frontmatter, content);
             console.log('[PollService] Poll saved successfully');
 
             // Update state
-            this.stateManager.addPoll(event.id, frontmatter);
+            this.stateManager.addPoll(event.id, metadata);
             console.log('[PollService] Poll state updated');
 
         } catch (error) {
@@ -270,31 +299,47 @@ export class PollService {
             }
             console.log('[PollService] Vote validation passed');
 
-            // Get poll ID and option from event
+            // Get poll ID and responses from event
             const pollId = event.tags.find(tag => tag[0] === 'e')?.[1];
-            const optionId = event.tags.find(tag => tag[0] === 'option')?.[1];
+            const responseTags = event.tags.filter(tag => tag[0] === 'response');
 
-            if (!pollId || !optionId) {
-                console.error('[PollService] Missing poll ID or option ID in vote event');
+            if (!pollId || responseTags.length === 0) {
+                console.error('[PollService] Missing poll ID or responses in vote event');
                 return;
             }
 
             console.log('[PollService] Processing vote:', {
                 pollId,
-                optionId,
+                responses: responseTags.map(tag => tag[1]),
                 voter: event.pubkey
             });
 
-            // Update poll state
-            const updated = await this.stateManager.addVote(pollId, optionId, event.pubkey);
+            // Update poll state for each response
+            let updated = false;
+            for (const tag of responseTags) {
+                const optionId = tag[1];
+                if (optionId) {
+                    const result = await this.stateManager.addVote(pollId, optionId, event.pubkey);
+                    updated = updated || result;
+                }
+            }
             if (updated) {
                 console.log('[PollService] Vote recorded successfully');
                 
                 // Update poll file
                 const poll = this.stateManager.getPoll(pollId);
                 if (poll) {
+                    // Convert metadata to frontmatter format
+                    const frontmatter = {
+                        id: poll.id,
+                        question: poll.question,
+                        options: poll.options.map(opt => opt.text),
+                        multiple_choice: poll.poll_type === 'multichoice',
+                        created_at: poll.created_at
+                    };
+
                     const content = this.formatPollContent(poll);
-                    await this.fileService.savePoll(poll, content);
+                    await this.fileService.savePoll(frontmatter, content);
                     console.log('[PollService] Poll file updated successfully');
                 }
             } else {
@@ -310,7 +355,7 @@ export class PollService {
     private extractPollData(event: NostrEvent): {
         question: string;
         options: PollOption[];
-        pollType: 'singlechoice' | 'multiplechoice';
+        pollType: PollType;
     } {
         const options: PollOption[] = event.tags
             .filter(tag => tag[0] === 'option')
@@ -320,8 +365,8 @@ export class PollService {
                 votes: 0
             }));
 
-        const pollType = event.tags.find(tag => tag[0] === 'polltype')?.[1] === 'multiplechoice'
-            ? 'multiplechoice'
+        const pollType = event.tags.find(tag => tag[0] === 'polltype')?.[1] === 'multichoice'
+            ? 'multichoice'
             : 'singlechoice';
 
         return {
@@ -331,28 +376,28 @@ export class PollService {
         };
     }
 
-    private formatPollContent(poll: PollFrontmatter): string {
+    private formatPollContent(metadata: PollMetadata): string {
+        // Convert metadata to frontmatter format for saving
         const frontmatter = {
-            ...poll,
-            created_at: new Date(poll.created * 1000).toISOString()
+            id: metadata.id,
+            question: metadata.question,
+            options: metadata.options.map(opt => opt.text),
+            multiple_choice: metadata.poll_type === 'multichoice',
+            created_at: metadata.created_at
         };
-
-        const optionsList = poll.options
-            .map(opt => `- [ ] ${opt.text} (${opt.votes} votes)`)
-            .join('\n');
 
         return `---
 ${JSON.stringify(frontmatter, null, 2)}
 ---
 
-# ${poll.question}
+# ${metadata.question}
 
-_${poll.poll_type === 'singlechoice' ? 'Single choice' : 'Multiple choice'} poll_
+_${metadata.poll_type === 'singlechoice' ? 'Single choice' : 'Multiple choice'} poll_
 
 ## Options
-${optionsList}
+${metadata.options.map((opt: PollOption) => `- [ ] ${opt.text} (${opt.votes} votes)`).join('\n')}
 
-Total votes: ${poll.total_votes}
+Total votes: ${metadata.total_votes}
 `;
     }
 }

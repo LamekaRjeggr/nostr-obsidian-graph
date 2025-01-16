@@ -81,7 +81,7 @@ export default class NostrPlugin extends Plugin {
     currentFileService: CurrentFileService;
     reactionProcessor: ReactionProcessor;
     noteCacheManager: EnhancedNoteCacheManager;
-    pollService: PollService;
+    pollService: PollService | null;
     unifiedFetchProcessor: UnifiedFetchProcessor;
     contactGraphService: ContactGraphService;
     private updateInterval: NodeJS.Timeout | null = null;
@@ -218,6 +218,21 @@ export default class NostrPlugin extends Plugin {
             this.app,
             this.fileService
         );
+
+        // Initialize poll service
+        if (this.settings.polls?.enabled) {
+            this.pollService = new PollService(
+                this.app,
+                this.settings,
+                this.eventEmitter,
+                this.fileService,
+                this.relayService
+            );
+            await this.pollService.initialize();
+            console.log('[NostrPlugin] Poll service initialized');
+        } else {
+            console.log('[NostrPlugin] Poll service disabled in settings');
+        }
 
         // Initialize mentioned profile fetcher with unified processor
         this.mentionedProfileFetcher = new MentionedProfileFetcher(

@@ -3,6 +3,7 @@ import NostrPlugin from '../main';
 import { ValidationService } from '../services/validation-service';
 import { RelayService } from '../services/core/relay-service';
 import { FetchSettingsModal } from './modals/fetch-settings-modal';
+import { PollService } from '../experimental/polls/poll-service';
 
 export class SettingsTab extends PluginSettingTab {
     plugin: NostrPlugin;
@@ -151,6 +152,26 @@ export class SettingsTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.polls.enabled = value;
                     await this.plugin.saveSettings();
+                    
+                    if (value) {
+                        // Initialize poll service when enabled
+                        this.plugin.pollService = new PollService(
+                            this.plugin.app,
+                            this.plugin.settings,
+                            this.plugin.eventEmitter,
+                            this.plugin.fileService,
+                            this.plugin.relayService
+                        );
+                        await this.plugin.pollService.initialize();
+                        new Notice('Poll service enabled and initialized');
+                    } else {
+                        // Cleanup poll service when disabled
+                        if (this.plugin.pollService) {
+                            await this.plugin.pollService.cleanup();
+                            this.plugin.pollService = null;
+                            new Notice('Poll service disabled');
+                        }
+                    }
                 }));
 
         if (this.plugin.settings.polls.enabled) {

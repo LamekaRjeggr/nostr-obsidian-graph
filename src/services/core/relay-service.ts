@@ -137,19 +137,45 @@ export class RelayService {
         }
 
         try {
+            const events: NostrEvent[] = [];
             console.log('[RelayService] Subscribing to events with filters:', filters);
-            const events = await this.pool.list(Array.from(this.activeRelays), filters);
-            
-            // Apply total limit if specified in filter
+
+            // Create subscription
+            const sub = this.pool.sub(Array.from(this.activeRelays), filters);
+
+            // Wait for events with timeout
+            const result = await new Promise<NostrEvent[]>((resolve) => {
+                const timeout = setTimeout(() => {
+                    sub.unsub();
+                    resolve(events);
+                }, 10000); // 10 second timeout
+
+                sub.on('event', (event: NostrEvent) => {
+                    console.log('[RelayService] Received event:', {
+                        id: event.id,
+                        kind: event.kind,
+                        tags: event.tags
+                    });
+                    events.push(event);
+                });
+
+                sub.on('eose', () => {
+                    clearTimeout(timeout);
+                    sub.unsub();
+                    resolve(events);
+                });
+            });
+
+            // Apply limit if specified
             const limit = filters[0]?.limit;
             if (limit) {
-                const limitedEvents = events.slice(0, limit);
-                console.log(`[RelayService] Received ${events.length} events, limiting to ${limitedEvents.length}`);
+                const limitedEvents = result.slice(0, limit);
+                console.log(`[RelayService] Received ${result.length} events, limiting to ${limitedEvents.length}`);
                 return limitedEvents;
             }
-            
-            console.log(`[RelayService] Received ${events.length} events`);
-            return events;
+
+            console.log(`[RelayService] Received ${result.length} events`);
+            return result;
         } catch (error) {
             console.error('[RelayService] Subscription error:', error);
             new Notice('Error fetching from relays');
