@@ -1,16 +1,3 @@
-import { App } from 'obsidian';
-import { FetchService } from '../../services/fetch/fetch-service';
-
-export interface FetchSettings {
-    notesPerProfile: number;
-    batchSize: number;
-    includeOwnNotes: boolean;
-    hexFetch?: {
-        batchSize: number;
-    };
-    threadSettings?: ThreadSettings;
-}
-
 export enum SearchScope {
     DIRECT_FOLLOWS = "Direct follows (1 degree)",
     FOLLOWS_OF_FOLLOWS = "Follows of follows (2 degrees)",
@@ -44,16 +31,4 @@ export interface SearchSettings {
 export interface ThreadSettings {
     limit: number;
     includeContext: boolean;
-}
-
-export interface ModalSection {
-    createSection(container: HTMLElement): HTMLElement;
-    onClose?(): void;
-}
-
-export interface ModalSectionProps {
-    app: App;
-    fetchService: FetchService;
-    onSettingsChange?: (settings: any) => Promise<void>;
-    closeModal?: () => void;
 }
