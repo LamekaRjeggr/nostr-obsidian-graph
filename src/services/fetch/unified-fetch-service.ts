@@ -18,10 +18,7 @@ import { NostrEventBus } from '../../experimental/event-bus/event-bus';
 
 export class UnifiedFetchService {
     private processor: UnifiedFetchProcessor;
-<<<<<<< HEAD
-=======
     private currentCount: number;
->>>>>>> cleanup-duplicates
     private initialized = false;
 
     constructor(
@@ -189,10 +186,7 @@ export class UnifiedFetchService {
     }
 
     reset(): void {
-<<<<<<< HEAD
-=======
         this.currentCount = this.settings.notesPerProfile || 50;
->>>>>>> cleanup-duplicates
         this.processor.reset();
     }
 }
