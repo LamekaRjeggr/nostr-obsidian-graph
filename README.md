@@ -10,6 +10,10 @@ A comprehensive Nostr integration for Obsidian, enabling you to fetch, organize,
   - Thread fetch: Get complete thread context and replies
   - Hex fetch: Get notes from specific authors (up to 500 notes)
   - Keyword search: Advanced search with NIP-50 support (up to 5000 notes)
+    - Dedicated search field for keywords
+    - Comma-separated keyword input
+    - Configurable search scope and time range
+    - Content type filtering options
   - Node-based fetch: Context-aware fetch from right-click menu
 
 ### Content Organization
@@ -39,7 +43,8 @@ A comprehensive Nostr integration for Obsidian, enabling you to fetch, organize,
   - Poll state management
 - Metadata Support
   - Complete nostr tag preservation
-  - Human-readable timestamps
+  - Consistent ISO timestamp formatting across notes and polls
+  - Unix timestamps preserved for reference
   - Topic tags integration
 
 ## Architecture

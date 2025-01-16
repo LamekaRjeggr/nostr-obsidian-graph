@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.87.4] - 2024-01-15
+
+### Added
+- Enhanced keyword search UI in UnifiedFetchModal with dedicated search field and button
+- Improved timestamp formatting consistency between notes and polls using ISO format
+
+### Changed
+- Integrated keyword search directly into the unified fetch interface
+- Updated temporal utils to use consistent timestamp formatting across all content types
+
+# Previous Versions
+
 ## [0.87.3] - 2024-01-14
 
 ### Fixed

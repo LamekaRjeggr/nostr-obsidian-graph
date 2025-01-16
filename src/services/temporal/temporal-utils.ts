@@ -14,13 +14,7 @@ export class TemporalUtils {
     static formatNoteTimestamp(timestamp: number): Pick<NoteFrontmatter, 'created' | 'created_at'> {
         return {
             created: timestamp,  // Preserve original Unix timestamp
-            created_at: new Date(timestamp * 1000).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
+            created_at: new Date(timestamp * 1000).toISOString()
         };
     }
 }

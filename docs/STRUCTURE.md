@@ -43,14 +43,16 @@ src/
 │   ├── file/
 │   │   ├── cache/
 │   │   │   └── note-cache-manager.ts
-│   │   ├── formatters/
-│   │   │   ├── note-formatter.ts
-│   │   │   └── profile-formatter.ts
+│   │   ├── formatters/        # Content formatting
+│   │   │   ├── note-formatter.ts     # Note content with ISO timestamps
+│   │   │   └── profile-formatter.ts  # Profile content formatting
 │   │   ├── system/
 │   │   │   └── directory-manager.ts
 │   │   └── utils/
 │   │       ├── path-utils.ts
 │   │       └── text-processor.ts
+│   ├── temporal/
+│   │   └── temporal-utils.ts    # Consistent ISO timestamp formatting for notes and polls
 │   ├── processors/
 │   │   ├── reaction-processor.ts
 │   │   ├── reference-processor.ts
@@ -154,7 +156,11 @@ src/
 - **Specialized Handlers**:
   - HexFetchHandler: Author-specific fetches (up to 500 notes)
   - ThreadFetchHandler: Thread context fetches
-  - KeywordSearchHandler: NIP-50 search operations
+  - KeywordSearchHandler: NIP-50 search operations with enhanced UI
+    * Dedicated keyword input field
+    * Comma-separated keyword support
+    * Configurable search scope and time range
+    * Content type filtering
   - NodeFetchHandler: Context-aware content fetches
   - ContactHandler: Follow relationship management
   - ProfileHandler: Profile data management

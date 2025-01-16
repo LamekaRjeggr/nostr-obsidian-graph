@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 import { App, Modal, Setting, ButtonComponent, Notice } from 'obsidian';
+=======
+import { App, Modal, Setting, Notice } from 'obsidian';
+import { NostrEventBus } from '../../experimental/event-bus/event-bus';
+import { NostrEventType } from '../../experimental/event-bus/types';
+>>>>>>> cleanup-duplicates
 import { UnifiedFetchProcessor } from '../../services/fetch/unified-fetch-processor';
 import { UnifiedFetchSettings, DEFAULT_UNIFIED_SETTINGS } from './unified-settings';
 import { SearchScope, TimeRange, ContentType } from './types';
@@ -253,6 +259,7 @@ export class UnifiedFetchModal extends Modal {
             this.settings.search = DEFAULT_UNIFIED_SETTINGS.search;
         }
 
+<<<<<<< HEAD
         // Add keyword input
         new Setting(container)
             .setName('Search Keywords')
@@ -262,6 +269,19 @@ export class UnifiedFetchModal extends Modal {
                 .onChange(async value => {
                     this.settings.search!.keywords = value.split(',').map(k => k.trim()).filter(k => k);
                     await this.onSubmit(this.settings);
+=======
+        // Add keyword input field
+        let keywords: string[] = [];
+        new Setting(container)
+            .setName('Keywords')
+            .setDesc('Enter keywords separated by commas')
+            .addText(text => text
+                .setPlaceholder('word1, word2, ...')
+                .onChange(value => {
+                    keywords = value.split(',')
+                        .map(k => k.trim())
+                        .filter(k => k.length > 0);
+>>>>>>> cleanup-duplicates
                 }));
 
         new Setting(container)
@@ -326,6 +346,7 @@ export class UnifiedFetchModal extends Modal {
                 }));
 
         // Add search button
+<<<<<<< HEAD
         const buttonContainer = container.createDiv();
         buttonContainer.style.textAlign = 'center';
         buttonContainer.style.marginTop = '20px';
@@ -365,6 +386,35 @@ export class UnifiedFetchModal extends Modal {
         buttonEl.style.cursor = 'pointer';
         buttonEl.style.border = 'none';
         buttonEl.style.width = '150px';
+=======
+        const searchButton = container.createEl('button', {
+            text: 'Search',
+            cls: 'mod-cta'
+        });
+        searchButton.style.width = '100%';
+        searchButton.style.marginTop = '20px';
+        searchButton.onclick = () => {
+            if (keywords.length > 0) {
+                // Publish search event
+                NostrEventBus.getInstance().publish(
+                    NostrEventType.KEYWORD_SEARCH,
+                    {
+                        keywords: keywords,
+                        limit: this.settings.search!.batchSize,
+                        searchSettings: {
+                            scope: this.settings.search!.scope,
+                            timeRange: this.settings.search!.timeRange,
+                            contentType: this.settings.search!.contentType,
+                            searchBatchSize: this.settings.search!.batchSize
+                        }
+                    }
+                );
+                this.close();
+            } else {
+                new Notice('Please enter at least one keyword');
+            }
+        };
+>>>>>>> cleanup-duplicates
     }
 
     onClose() {

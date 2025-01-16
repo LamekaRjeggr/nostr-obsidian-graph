@@ -18,6 +18,10 @@ import { NostrEventBus } from '../../experimental/event-bus/event-bus';
 
 export class UnifiedFetchService {
     private processor: UnifiedFetchProcessor;
+<<<<<<< HEAD
+=======
+    private currentCount: number;
+>>>>>>> cleanup-duplicates
     private initialized = false;
 
     constructor(
@@ -28,6 +32,7 @@ export class UnifiedFetchService {
         private app: App,
         private plugin: NostrPlugin
     ) {
+        this.currentCount = settings.notesPerProfile || 50;
         const eventBus = NostrEventBus.getInstance({ enableLogging: true });
         this.processor = new UnifiedFetchProcessor(relayService, eventBus, fileService, app, eventService);
     }
@@ -116,6 +121,15 @@ export class UnifiedFetchService {
         new Notice('Fetching notes and reactions...');
         
         try {
+            // First fetch user's profile metadata (goes to nostr/User Profile)
+            await this.processor.fetchWithOptions({
+                kinds: [EventKinds.METADATA],
+                author: hex,
+                limit: 1,
+                useStream: true
+            });
+
+            // Then fetch user's notes (goes to nostr/User Notes)
             await this.processor.fetchWithOptions({
                 kinds: [EventKinds.NOTE],
                 author: hex,
@@ -125,6 +139,19 @@ export class UnifiedFetchService {
                     fetchProfiles: true,
                     linkInGraph: true
                 },
+                useStream: true,
+                enhanced: {
+                    titles: true,
+                    reactions: true
+                }
+            });
+
+            // Finally fetch replies to user (goes to nostr/Replies to User)
+            // This finds notes that have a p tag with the user's pubkey
+            await this.processor.fetchWithOptions({
+                kinds: [EventKinds.NOTE],
+                tags: [['p', hex]],
+                limit: this.currentCount,
                 useStream: true,
                 enhanced: {
                     titles: true,
@@ -162,6 +189,10 @@ export class UnifiedFetchService {
     }
 
     reset(): void {
+<<<<<<< HEAD
+=======
+        this.currentCount = this.settings.notesPerProfile || 50;
+>>>>>>> cleanup-duplicates
         this.processor.reset();
     }
 }
