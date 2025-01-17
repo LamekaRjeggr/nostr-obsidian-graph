@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.88.1] - 2024-01-17
+- Added raw JSON display to notes, profiles, and polls
+- Fixed race condition handling in poll saves
+
 ## [0.88.0] - 2025-01-16
 - Removed deprecated modal components in favor of unified fetch system.
 

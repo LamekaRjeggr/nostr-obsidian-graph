@@ -175,7 +175,8 @@ export class FileService implements LinkResolver {
                 : '',
             metadata?.referencedBy?.length 
                 ? await this.noteFormatter.formatBacklinks(this.convertToTagReferences(metadata.referencedBy))
-                : ''
+                : '',
+            '\n```json\n' + JSON.stringify(event, null, 2) + '\n```'
         ].filter((section: string) => section !== '');
 
         // Create full content
@@ -215,19 +216,25 @@ export class FileService implements LinkResolver {
         const filePath = this.getPollPath(poll);
         const file = this.app.vault.getAbstractFileByPath(filePath);
 
+        // Add raw JSON to content
+        const fullContent = [
+            content,
+            '\n```json\n' + JSON.stringify(poll, null, 2) + '\n```'
+        ].join('');
+
         // Save file with race condition handling
         try {
             if (file instanceof TFile) {
-                await this.vault.modify(file, content);
+                await this.vault.modify(file, fullContent);
             } else {
-                await this.vault.create(filePath, content);
+                await this.vault.create(filePath, fullContent);
             }
         } catch (error) {
             if (error.message === 'File already exists.') {
                 // Another process created the file while we were preparing content
                 const newFile = this.app.vault.getAbstractFileByPath(filePath);
                 if (newFile instanceof TFile) {
-                    await this.vault.modify(newFile, content);
+                    await this.vault.modify(newFile, fullContent);
                 } else {
                     throw new Error('File exists but cannot be accessed');
                 }
@@ -267,7 +274,8 @@ export class FileService implements LinkResolver {
             FrontmatterUtil.formatFrontmatter(frontmatterData),
             '---\n',
             `# ${displayName}\n`,
-            profile.about || ''
+            profile.about || '',
+            '\n```json\n' + JSON.stringify(profile, null, 2) + '\n```'
         ].join('\n');
 
         // Save profile with race condition handling
