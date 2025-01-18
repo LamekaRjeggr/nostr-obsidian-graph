@@ -40,16 +40,36 @@ export class UnifiedFetchProcessor {
     }
 
     async fetchThreadContext(eventId: string, limit: number = 50): Promise<ThreadContext> {
-        const events = await this.fetchWithOptions({
+        // First fetch the target event
+        const targetEvent = await this.fetchCompleteNote(eventId);
+        if (!targetEvent) {
+            return { replies: [] };
+        }
+
+        // Process the target event to get thread relationships
+        const referenceProcessor = this.getReferenceProcessor();
+        const processedRefs = await referenceProcessor.process(targetEvent);
+
+        // Get root and parent from metadata
+        const root = processedRefs.metadata.root;
+        const parent = processedRefs.metadata.replyTo;
+
+        // Fetch replies (events that reference the target)
+        const replyEvents = await this.fetchWithOptions({
             kinds: [1],
             tags: [['e', eventId]],
             limit
         });
 
-        const rootEvent = await this.fetchCompleteNote(eventId);
+        // Process each reply to ensure proper thread context
+        for (const reply of replyEvents) {
+            await referenceProcessor.process(reply);
+        }
+
         return {
-            root: rootEvent?.id,
-            replies: events.map(event => event.id)
+            root,
+            parent,
+            replies: replyEvents.map(event => event.id)
         };
     }
 

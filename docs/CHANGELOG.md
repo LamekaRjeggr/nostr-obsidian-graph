@@ -1,6 +1,7 @@
 # Changelog
 
-## [0.88.1] - 2024-01-17
+## [0.88.2] - 2024-01-17
+- Fixed thread fetching to properly handle root and parent relationships
 - Added raw JSON display to notes, profiles, and polls
 - Fixed race condition handling in poll saves
 
