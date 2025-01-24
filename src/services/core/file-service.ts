@@ -59,23 +59,34 @@ export class FileService implements LinkResolver {
         return userHex === pubkey;
     }
 
-    private getNotePath(event: NostrEvent): string {
-        // Check if this is user's own note
+    private async isReplyNote(event: NostrEvent): Promise<boolean> {
+        const tagResults = this.tagProcessor.process(event);
+        return (
+            tagResults.replyTo !== undefined ||
+            event.tags.some(tag => 
+                tag[0] === 'p' && 
+                tag[1] === KeyService.npubToHex(this.settings.npub)
+            )
+        );
+    }
+
+    private async getNotePath(event: NostrEvent): Promise<string> {
         if (this.isUserContent(event.pubkey)) {
             return this.pathUtils.getNotePath(event.content, 'nostr/User Notes');
         }
-
-        // Check if this is a reply to the user
-        const userHex = KeyService.npubToHex(this.settings.npub);
-        const isReplyToUser = event.tags.some((tag: string[]) => 
-            tag[0] === 'p' && tag[1] === userHex
-        );
-        if (isReplyToUser) {
-            return this.pathUtils.getNotePath(event.content, 'nostr/Replies to User');
+        
+        const isReply = await this.isReplyNote(event);
+        if (isReply) {
+            return this.pathUtils.getNotePath(
+                event.content, 
+                this.settings.directories.replies
+            );
         }
-
-        // Default to original notes directory for other content
-        return this.pathUtils.getNotePath(event.content, this.settings.notesDirectory);
+        
+        return this.pathUtils.getNotePath(
+            event.content, 
+            this.settings.notesDirectory
+        );
     }
 
     private getPollPath(poll: PollFrontmatter): string {
@@ -98,7 +109,7 @@ export class FileService implements LinkResolver {
         const safeTitle = this.pathUtils.getPath(title, '', { extractTitle: false }).replace(/^.*[/\\](.+?)\.md$/, '$1');
         this.noteCacheManager.cacheTitle(event.id, safeTitle);
         
-        const filePath = this.getNotePath(event);
+        const filePath = await this.getNotePath(event);
         const authorName = await this.getTitleById(event.pubkey);
 
         // Extract tags

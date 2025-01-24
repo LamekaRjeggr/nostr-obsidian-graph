@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.88.4] - 2024-01-24
+- Improved reply detection and organization
+- Enhanced file path handling with better sanitization
+- Fixed async/await handling in file operations
+- Updated note path determination logic
+
 ## [0.88.3] - 2024-01-24
 - Improved file operations using Obsidian's native API
 - Enhanced metadata handling with Obsidian's cache system
