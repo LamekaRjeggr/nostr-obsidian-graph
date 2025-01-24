@@ -48,7 +48,7 @@ export class FileService implements LinkResolver {
     ) {
         this.noteFormatter = new NoteFormatter(this);
         this.profileFormatter = new ProfileFormatter();
-        this.directoryManager = new DirectoryManager(vault, settings);
+        this.directoryManager = new DirectoryManager(vault, settings, app);
         this.noteCacheManager = new NoteCacheManager();
         this.tagProcessor = new TagProcessor();
         this.pathUtils = new PathUtils(app);
@@ -301,49 +301,34 @@ export class FileService implements LinkResolver {
     }
 
     async getTitleById(id: string): Promise<string | null> {
-        // Check cache first
-        if (this.titleCache.has(id)) {
-            return this.titleCache.get(id)!;
-        }
-
-        // Check note cache
-        const cached = this.noteCacheManager.getCachedTitle(id);
-        if (cached) {
-            this.titleCache.set(id, cached);
-            return cached;
-        }
-
-        // Check profiles
-        const profileFiles = await this.directoryManager.listFiles(this.settings.profilesDirectory);
-        for (const filePath of profileFiles) {
-            const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (!(file instanceof TFile)) continue;
-
-            const cache = this.app.metadataCache.getFileCache(file);
-            if (cache?.frontmatter?.aliases?.includes(id)) {
-                const title = cache.frontmatter.display_name || 
-                            cache.frontmatter.name || 
-                            `Nostr User ${id.slice(0, 8)}`;
-                this.titleCache.set(id, title);
-                return title;
+        try {
+            // Check cache first
+            if (this.titleCache.has(id)) {
+                return this.titleCache.get(id)!;
             }
-        }
 
-        // Check notes in all relevant directories
-        const directories = [
-            this.settings.notesDirectory,
-            this.settings.directories.replies,
-            'nostr/User Notes',
-            'nostr/Replies to User'
-        ].filter((dir): dir is string => typeof dir === 'string');
+            // Check note cache
+            const cached = this.noteCacheManager.getCachedTitle(id);
+            if (cached) {
+                this.titleCache.set(id, cached);
+                return cached;
+            }
 
-        for (const dir of directories) {
-            const files = await this.directoryManager.listFiles(dir);
-            for (const filePath of files) {
-                const file = this.app.vault.getAbstractFileByPath(filePath);
-                if (!(file instanceof TFile)) continue;
-
+            // Use Obsidian's metadata cache to find files with matching ID
+            const files = this.app.vault.getMarkdownFiles();
+            for (const file of files) {
                 const cache = this.app.metadataCache.getFileCache(file);
+                
+                // Check for profile files (using aliases)
+                if (cache?.frontmatter?.aliases?.includes(id)) {
+                    const title = cache.frontmatter.display_name || 
+                                cache.frontmatter.name || 
+                                `Nostr User ${id.slice(0, 8)}`;
+                    this.titleCache.set(id, title);
+                    return title;
+                }
+                
+                // Check for note files (using frontmatter id)
                 if (cache?.frontmatter?.id === id && cache.headings?.[0]?.heading) {
                     const title = cache.headings[0].heading;
                     this.titleCache.set(id, title);
@@ -351,9 +336,12 @@ export class FileService implements LinkResolver {
                     return title;
                 }
             }
-        }
 
-        return null;
+            return null;
+        } catch (error) {
+            console.error(`Error resolving title for ID ${id}:`, error);
+            return null;
+        }
     }
 
     async moveProfileToMentions(pubkey: string, name: string): Promise<void> {
@@ -401,68 +389,76 @@ export class FileService implements LinkResolver {
     }
 
     async hasNote(eventId: string): Promise<boolean> {
-        // Check all nostr directories for the note
-        const directories = await this.getNotesDirectories();
-        for (const dir of directories) {
-            const files = await this.listFilesInDirectory(dir);
-            for (const filePath of files) {
-                const metadata = await this.getNostrMetadata(filePath);
-                if (metadata?.id === eventId) {
+        try {
+            // Use Obsidian's metadata cache to efficiently search all files
+            const files = this.app.vault.getMarkdownFiles();
+            for (const file of files) {
+                const cache = this.app.metadataCache.getFileCache(file);
+                if (cache?.frontmatter?.id === eventId) {
                     return true;
                 }
             }
+            return false;
+        } catch (error) {
+            console.error(`Error checking for note ${eventId}:`, error);
+            return false;
         }
-        return false;
     }
 
     async getNostrMetadata(filePath: string): Promise<NoteMeta | null> {
-        console.log('Getting metadata for file:', filePath);
-        
-        const file = this.app.vault.getAbstractFileByPath(filePath);
-        console.log('File object:', file);
-        
-        if (!file || !(file instanceof TFile)) {
-            console.log('File is not a TFile instance');
-            return null;
-        }
-
-        const cache = this.app.metadataCache.getFileCache(file);
-        console.log('Metadata cache:', cache);
-        
-        const frontmatter = cache?.frontmatter;
-        if (!frontmatter) {
-            console.log('No frontmatter found');
-            return null;
-        }
-
-        // If it's a profile file (in any profile directory)
-        if (filePath.startsWith(this.settings.profilesDirectory) || 
-            filePath.startsWith('nostr/User Profile')) {
-            // For profiles, the pubkey is stored in aliases array
-            const pubkey = frontmatter.aliases?.[0];
-            if (!pubkey) {
-                console.log('No pubkey found in profile');
+        try {
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) {
                 return null;
             }
-            return {
-                id: pubkey,
-                pubkey,
-                kind: 0, // Profile kind
-                nostr_tags: [],
-                tags: [],
-                likes: 0,
-                zaps: 0,
-                zap_amount: 0,
-                created: frontmatter.created || 0
-            };
-        }
 
-        // For regular notes
-        if (!frontmatter.id) {
-            console.log('No nostr event ID found');
+            // Use Obsidian's metadata cache
+            const cache = this.app.metadataCache.getFileCache(file);
+            const frontmatter = cache?.frontmatter;
+            if (!frontmatter) {
+                return null;
+            }
+
+            // Handle profile files
+            if (filePath.startsWith(this.settings.profilesDirectory) || 
+                filePath.startsWith('nostr/User Profile')) {
+                const pubkey = frontmatter.aliases?.[0];
+                if (!pubkey) {
+                    return null;
+                }
+
+                // Use Obsidian's cache for profile metadata
+                return {
+                    id: pubkey,
+                    pubkey,
+                    kind: 0,
+                    nostr_tags: [],
+                    tags: [],
+                    likes: frontmatter.likes || 0,
+                    zaps: frontmatter.zaps || 0,
+                    zap_amount: frontmatter.zap_amount || 0,
+                    created: frontmatter.created || 0,
+                    name: frontmatter.name,
+                    display_name: frontmatter.display_name,
+                    nip05: frontmatter.nip05,
+                    about: cache?.sections?.[0]?.text || ''
+                };
+            }
+
+            // Handle regular notes
+            if (!frontmatter.id) {
+                return null;
+            }
+
+            // Use Obsidian's cache for note metadata
+            return {
+                ...frontmatter,
+                content: cache?.sections?.[0]?.text || '',
+                title: cache?.headings?.[0]?.heading || 'Untitled Note'
+            };
+        } catch (error) {
+            console.error(`Error getting metadata for ${filePath}:`, error);
             return null;
         }
-
-        return frontmatter;
     }
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.88.3] - 2024-01-24
+- Improved file operations using Obsidian's native API
+- Enhanced metadata handling with Obsidian's cache system
+- Optimized file listing and searching operations
+- Better error handling and logging
+- Reduced direct file system operations
+
 ## [0.88.2] - 2024-01-17
 - Fixed thread fetching to properly handle root and parent relationships
 - Added raw JSON display to notes, profiles, and polls
