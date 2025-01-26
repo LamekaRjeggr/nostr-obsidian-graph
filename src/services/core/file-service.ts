@@ -399,21 +399,26 @@ export class FileService implements LinkResolver {
         return this.directoryManager.listFiles(directory);
     }
 
-    async hasNote(eventId: string): Promise<boolean> {
+    async findNotePathById(id: string): Promise<string | null> {
         try {
             // Use Obsidian's metadata cache to efficiently search all files
             const files = this.app.vault.getMarkdownFiles();
             for (const file of files) {
                 const cache = this.app.metadataCache.getFileCache(file);
-                if (cache?.frontmatter?.id === eventId) {
-                    return true;
+                if (cache?.frontmatter?.id === id) {
+                    return file.path;
                 }
             }
-            return false;
+            return null;
         } catch (error) {
-            console.error(`Error checking for note ${eventId}:`, error);
-            return false;
+            console.error(`Error finding note path for ID ${id}:`, error);
+            return null;
         }
+    }
+
+    async hasNote(eventId: string): Promise<boolean> {
+        const path = await this.findNotePathById(eventId);
+        return path !== null;
     }
 
     async getNostrMetadata(filePath: string): Promise<NoteMeta | null> {

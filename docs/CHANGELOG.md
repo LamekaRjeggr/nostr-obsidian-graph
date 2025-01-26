@@ -2,8 +2,9 @@
 
 ## [0.88.9] - 2024-01-26
 - Improved thread context fetching using Obsidian's resolvedLinks API
-- Enhanced type safety for thread relationships
+- Enhanced type safety with ThreadContextWithReplies interface
 - Optimized profile and note link resolution
+- Reduced code duplication by consolidating path finding logic in FileService
 
 ## [0.88.8] - 2024-01-24
 - Fixed right-click node-based fetch for profiles by using ThreadFetchService

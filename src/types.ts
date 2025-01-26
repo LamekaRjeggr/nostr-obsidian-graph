@@ -104,6 +104,10 @@ export interface ThreadContext {
     replies?: string[];
 }
 
+export interface ThreadContextWithReplies extends ThreadContext {
+    replies: string[];
+}
+
 export interface ContactOptions {
     include: boolean;           // Include contact fetching
     fetchProfiles: boolean;     // Fetch contact profiles

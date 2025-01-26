@@ -1,5 +1,5 @@
 import { App, CachedMetadata, LinkCache } from 'obsidian';
-import { NostrEvent, FetchOptions, ThreadContext } from '../../types';
+import { NostrEvent, FetchOptions, ThreadContext, ThreadContextWithReplies } from '../../types';
 import { NostrEventType, ThreadFetchEvent } from '../../experimental/event-bus/types';
 import { RelayService } from '../core/relay-service';
 import { NostrEventBus } from '../../experimental/event-bus/event-bus';
@@ -82,16 +82,12 @@ export class UnifiedFetchProcessor {
         const targetEvent = await this.fetchCompleteNote(id, kind);
         if (!targetEvent) return { replies: [] };
 
-        // Get target note's path from cache
-        const targetPath = await this.findNotePath(id);
+        // Get target note's path from FileService
+        const targetPath = await this.fileService.findNotePathById(id);
         if (!targetPath) return { replies: [] };
 
         // Use Obsidian's resolvedLinks API for relationships
         const resolvedLinks = this.app.metadataCache.resolvedLinks;
-        interface ThreadContextWithReplies extends ThreadContext {
-            replies: string[];
-        }
-        
         const relationships: ThreadContextWithReplies = {
             replies: []
         };
@@ -144,17 +140,6 @@ export class UnifiedFetchProcessor {
         }
 
         return relationships;
-    }
-
-    private async findNotePath(id: string): Promise<string | null> {
-        const files = this.app.vault.getMarkdownFiles();
-        for (const file of files) {
-            const cache = this.app.metadataCache.getFileCache(file);
-            if (cache?.frontmatter?.id === id) {
-                return file.path;
-            }
-        }
-        return null;
     }
 
     private isNostrEvent(obj: any): obj is NostrEvent {
