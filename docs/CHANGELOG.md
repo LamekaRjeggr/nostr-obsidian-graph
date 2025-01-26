@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.88.9] - 2024-01-26
+- Improved thread context fetching using Obsidian's resolvedLinks API
+- Enhanced type safety for thread relationships
+- Optimized profile and note link resolution
+
 ## [0.88.8] - 2024-01-24
 - Fixed right-click node-based fetch for profiles by using ThreadFetchService
 - Unified profile thread fetching across all operations

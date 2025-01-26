@@ -73,38 +73,43 @@ export class UnifiedFetchProcessor {
     }
 
     async fetchThreadContext(id: string, limit: number = 50, kind: number = 1): Promise<ThreadContext> {
+        // Only handle notes (kind 1)
+        if (kind !== 1) {
+            throw new Error('Thread context fetching only supported for notes (kind 1)');
+        }
+
         // Get target event (from cache or relays)
         const targetEvent = await this.fetchCompleteNote(id, kind);
         if (!targetEvent) return { replies: [] };
 
-        // Use Obsidian's cache for relationships
-        const files = this.app.vault.getMarkdownFiles();
-        const cache = this.app.metadataCache;
-        const relationships: Required<Omit<ThreadContext, 'root' | 'parent'>> & {
-            root?: string;
-            parent?: string;
-        } = {
-            root: undefined,
-            parent: undefined,
+        // Get target note's path from cache
+        const targetPath = await this.findNotePath(id);
+        if (!targetPath) return { replies: [] };
+
+        // Use Obsidian's resolvedLinks API for relationships
+        const resolvedLinks = this.app.metadataCache.resolvedLinks;
+        interface ThreadContextWithReplies extends ThreadContext {
+            replies: string[];
+        }
+        
+        const relationships: ThreadContextWithReplies = {
             replies: []
         };
 
-        // Check each file's frontmatter and links
-        for (const file of files) {
-            const fileCache = cache.getFileCache(file);
-            if (!fileCache) continue;
+        // Process each file that has links
+        for (const [sourcePath, links] of Object.entries(resolvedLinks)) {
+            const sourceCache = this.app.metadataCache.getCache(sourcePath);
+            if (!sourceCache?.frontmatter?.id) continue;
 
-            // Check if this file references our target
-            const frontmatter = fileCache.frontmatter;
-            
-            if (frontmatter?.root === id) {
-                relationships.root = frontmatter.id;
-            }
-            if (frontmatter?.reply_to === id) {
-                relationships.replies.push(frontmatter.id);
-            }
-            if (frontmatter?.id === id && frontmatter.root) {
-                relationships.root = frontmatter.root;
+            // Check if this note links to our target
+            if (links[targetPath]) {
+                const linkContext = sourceCache.frontmatter;
+                if (linkContext.root === id) {
+                    relationships.root = linkContext.id;
+                }
+                if (linkContext.reply_to === id) {
+                    relationships.replies.push(linkContext.id);
+                }
             }
         }
 
@@ -113,8 +118,12 @@ export class UnifiedFetchProcessor {
         const processedRefs = await referenceProcessor.process(targetEvent);
         
         // Merge cached and processed references
-        relationships.root = processedRefs.metadata.root || relationships.root;
-        relationships.parent = processedRefs.metadata.replyTo;
+        if (processedRefs.metadata.root) {
+            relationships.root = processedRefs.metadata.root;
+        }
+        if (processedRefs.metadata.replyTo) {
+            relationships.parent = processedRefs.metadata.replyTo;
+        }
 
         // Fetch any missing data from relays if needed
         if (!relationships.replies.length) {
@@ -135,6 +144,17 @@ export class UnifiedFetchProcessor {
         }
 
         return relationships;
+    }
+
+    private async findNotePath(id: string): Promise<string | null> {
+        const files = this.app.vault.getMarkdownFiles();
+        for (const file of files) {
+            const cache = this.app.metadataCache.getFileCache(file);
+            if (cache?.frontmatter?.id === id) {
+                return file.path;
+            }
+        }
+        return null;
     }
 
     private isNostrEvent(obj: any): obj is NostrEvent {
