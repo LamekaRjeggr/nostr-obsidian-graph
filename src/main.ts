@@ -1,5 +1,6 @@
 import { Plugin, Notice, App, Menu, MenuItem, TAbstractFile } from 'obsidian';
 import { NostrEvent } from './types';
+import { EventKinds } from './services/core/base-event-handler';
 import { NodeFetchHandler } from './services/fetch/handlers/node-fetch-handler';
 import { NostrSettings } from './types';
 import { SettingsTab } from './views/settings-tab';
@@ -95,41 +96,20 @@ export default class NostrPlugin extends Plugin {
                 throw new Error('No nostr metadata found');
             }
 
-            // For profiles (kind 0), fetch their content
-            if (metadata.kind === 0) {
-                // Use UnifiedFetchProcessor for profile content
-                await this.unifiedFetchProcessor.fetchWithOptions({
-                    kinds: [1], // Fetch notes
-                    author: metadata.id,
-                    limit: this.settings.hexFetch?.batchSize || 50
-                });
-            } else {
-                // For notes, fetch thread context and related content
-                const noteIds = new Set<string>([metadata.id]);
-                const profileIds = new Set<string>([metadata.pubkey]);
-                
-                // Add referenced notes and profiles from tags
-                metadata.nostr_tags?.forEach(tag => {
-                    if (tag[0] === 'e') noteIds.add(tag[1]);
-                    if (tag[0] === 'p') profileIds.add(tag[1]);
-                });
-
-                // Fetch thread context first
-                await this.unifiedFetchProcessor.fetchThreadContext(
-                    metadata.id,
-                    this.settings.threadSettings?.limit || 50
+            // Use the same methods as thread fetch commands
+            if (metadata.kind === EventKinds.METADATA) {
+                // For profiles, use ThreadFetchService's author threads method
+                await this.threadFetchService.fetchAuthorThreads(
+                    metadata.pubkey,
+                    this.settings.hexFetch?.batchSize || 50
                 );
-
-                // Then fetch profiles' content if enabled
-                if (this.settings.threadSettings?.includeContext) {
-                    for (const pubkey of profileIds) {
-                        await this.unifiedFetchProcessor.fetchWithOptions({
-                            kinds: [1],
-                            author: pubkey,
-                            limit: this.settings.hexFetch?.batchSize || 50
-                        });
-                    }
-                }
+            } else {
+                // For notes, use ThreadFetchService's single thread method
+                await this.threadFetchService.fetchSingleThread(
+                    metadata.id,
+                    this.settings.threadSettings?.limit || 50,
+                    this.settings.threadSettings?.includeContext || true
+                );
             }
             
             new Notice('Content fetched successfully');
@@ -260,28 +240,14 @@ export default class NostrPlugin extends Plugin {
         NostrEventBus.getInstance().subscribe(NostrEventType.REACTION, this.reactionProcessor);
         NostrEventBus.getInstance().subscribe(NostrEventType.ZAP, this.reactionProcessor);
 
-        // Initialize node fetch handler
+        // Initialize node fetch handler with plugin settings
         const nodeFetchHandler = new NodeFetchHandler(
             this.eventService,
             this.unifiedFetchProcessor.getReferenceProcessor(),
             this.unifiedFetchProcessor,
             this.app,
-            {
-                notesPerProfile: this.settings.notesPerProfile,
-                batchSize: this.settings.batchSize,
-                includeOwnNotes: this.settings.includeOwnNotes,
-                hexFetch: {
-                    batchSize: this.settings.hexFetch?.batchSize || 50
-                },
-                threadSettings: {
-                    limit: 50,
-                    includeContext: true
-                }
-            }
+            this.settings // Pass the full plugin settings
         );
-
-        // Set node fetch handler in unified processor
-        this.unifiedFetchProcessor.setNodeFetchHandler(nodeFetchHandler);
 
         // Register keyword search handler
         const keywordHandler = new KeywordSearchHandler(

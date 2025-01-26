@@ -76,6 +76,14 @@ export class ThreadFetchHandler implements EventHandler<ThreadFetchEvent> {
             // Fetch and save target event
             const targetEvent = await this.unifiedFetchProcessor.fetchCompleteNote(eventId);
             if (targetEvent) {
+                // Fetch author profile thread context
+                // Fetch author profile thread context
+                await this.unifiedFetchProcessor.fetchThreadContext(
+                    targetEvent.pubkey,
+                    20, // Limit for profile thread context
+                    0  // kind 0 for profiles
+                );
+
                 const targetRefs = this.createReferences(targetEvent.id, {
                     root: context.root,
                     parent: context.parent

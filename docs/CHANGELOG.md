@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.88.8] - 2024-01-24
+- Fixed right-click node-based fetch for profiles by using ThreadFetchService
+- Unified profile thread fetching across all operations
+
+## [0.88.7] - 2024-01-24
+- Fixed profile fetching by using correct event kind
+- Added cache-aware thread context fetching
+- Improved type safety across fetch handlers
+- Fixed node-based fetching for profiles and notes
+
+## [0.88.6] - 2024-01-24
+- Unified profile and thread fetching under single code path
+- Enhanced profile fetching with full thread context
+- Removed deprecated fetchProfileWithContext method
+- Simplified codebase with consistent thread handling
+
+## [0.88.5] - 2024-01-24
+- Enhanced profile fetching with rich thread context
+- Improved reference handling using Obsidian's cache
+- Standardized profile fetching behavior across handlers
+- Better integration with Obsidian's metadata system
+
 ## [0.88.4] - 2024-01-24
 - Improved reply detection and organization
 - Enhanced file path handling with better sanitization

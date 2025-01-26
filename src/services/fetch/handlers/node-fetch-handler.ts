@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import { NostrEvent, TagType } from '../../../types';
+import { NostrEvent, TagType, NostrSettings } from '../../../types';
 import { EventService } from '../../../services/core/event-service';
 import { KeyService } from '../../../services/core/key-service';
 import { BaseEventHandler, EventKinds, ProcessingPriority } from '../../../services/core/base-event-handler';
@@ -7,7 +7,6 @@ import { TagProcessor } from '../../processors/tag-processor';
 import { ReferenceProcessor } from '../../../services/processors/reference-processor';
 import { EventHandler, NodeFetchEvent } from '../../../experimental/event-bus/types';
 import { UnifiedFetchProcessor } from '../unified-fetch-processor';
-import { FetchSettings } from '../../../views/modals/types';
 
 export class NodeFetchHandler extends BaseEventHandler implements EventHandler<NodeFetchEvent> {
     private tagProcessor: TagProcessor;
@@ -18,7 +17,7 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
         private referenceProcessor: ReferenceProcessor,
         private unifiedFetchProcessor: UnifiedFetchProcessor,
         private app: App,
-        private fetchSettings: FetchSettings
+        private settings: NostrSettings
     ) {
         super(eventService, EventKinds.NOTE, ProcessingPriority.NOTE);
         this.tagProcessor = new TagProcessor();
@@ -65,11 +64,11 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
             const pubkey = this.extractPubkey(metadata);
             if (pubkey) {
                 console.log(`Processing as profile with pubkey: ${pubkey}`);
-                await this.unifiedFetchProcessor.fetchWithOptions({
-                    kinds: [EventKinds.NOTE],
-                    limit: this.fetchSettings.hexFetch?.batchSize || defaultBatchSize,
-                    author: pubkey
-                });
+                await this.unifiedFetchProcessor.fetchThreadContext(
+                    pubkey,
+                    this.settings.hexFetch?.batchSize || defaultBatchSize,
+                    0 // kind 0 for profiles
+                );
             }
         } else {
             const eventId = this.extractEventId(metadata);
@@ -77,17 +76,18 @@ export class NodeFetchHandler extends BaseEventHandler implements EventHandler<N
                 console.log(`Processing as note with event ID: ${eventId}`);
                 await this.unifiedFetchProcessor.fetchThreadContext(
                     eventId,
-                    this.fetchSettings.threadSettings?.limit || defaultThreadLimit
+                    this.settings.threadSettings?.limit || defaultThreadLimit,
+                    1 // kind 1 for notes
                 );
 
-                if (this.fetchSettings.threadSettings?.includeContext) {
+                if (this.settings.threadSettings?.includeContext) {
                     const profileRefs = this.extractProfileRefs(metadata);
                     for (const pubkey of profileRefs) {
-                        await this.unifiedFetchProcessor.fetchWithOptions({
-                            kinds: [EventKinds.NOTE],
-                            limit: this.fetchSettings.hexFetch?.batchSize || defaultBatchSize,
-                            author: pubkey
-                        });
+                        await this.unifiedFetchProcessor.fetchThreadContext(
+                            pubkey,
+                            this.settings.hexFetch?.batchSize || defaultBatchSize,
+                            0 // kind 0 for profiles
+                        );
                     }
                 }
             }
