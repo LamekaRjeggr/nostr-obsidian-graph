@@ -13,6 +13,7 @@ import { KeyService } from './services/core/key-service';
 import { EventEmitter } from './services/event-emitter';
 import { ProfileManagerService } from './services/profile/profile-manager-service';
 import { UnifiedFetchModal } from './views/modals/unified-fetch-modal';
+import { HexFetchModal } from './views/modals/hex-fetch-modal';
 import { UnifiedFetchSettings, DEFAULT_UNIFIED_SETTINGS, migrateSettings } from './views/modals/unified-settings';
 import { MentionedProfileFetcher } from './services/fetch/mentioned-profile-fetcher';
 import { MentionedNoteFetcher } from './services/fetch/mentioned-note-fetcher';
@@ -294,6 +295,19 @@ export default class NostrPlugin extends Plugin {
         this.addSettingTab(new SettingsTab(this.app, this));
 
         // Add commands
+        this.addCommand({
+            id: 'open-hex-fetch',
+            name: 'Fetch Notes by Hex Key',
+            callback: () => {
+                new HexFetchModal(
+                    this.app,
+                    this.unifiedFetchProcessor,
+                    this.fileService,
+                    this.currentFileService
+                ).open();
+            }
+        });
+
         this.addCommand({
             id: 'open-fetch-settings',
             name: 'Open Fetch Settings',

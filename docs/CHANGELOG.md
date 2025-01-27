@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.88.12] - 2024-01-26
+- Added hex fetch modal with note limit slider
+- Improved hex key validation and error handling
+- Added command palette entry for hex fetching
+- Enhanced user feedback during fetch operations
+
 ## [0.88.11] - 2024-01-26
 - Enhanced profile linking using Obsidian's native link system
 - Added bi-directional links between notes and mentioned profiles
