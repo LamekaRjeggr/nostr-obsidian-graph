@@ -44,11 +44,12 @@ export class FileService implements LinkResolver {
     constructor(
         private vault: Vault,
         private settings: NostrSettings,
-        private app: any
+        private app: any,
+        directoryManager?: DirectoryManager
     ) {
         this.noteFormatter = new NoteFormatter(this);
         this.profileFormatter = new ProfileFormatter();
-        this.directoryManager = new DirectoryManager(vault, settings, app);
+        this.directoryManager = directoryManager || new DirectoryManager(vault, settings, app);
         this.noteCacheManager = new NoteCacheManager();
         this.tagProcessor = new TagProcessor();
         this.pathUtils = new PathUtils(app);
@@ -198,26 +199,8 @@ export class FileService implements LinkResolver {
             ...sections
         ].join('\n');
 
-        // Save file with race condition handling
-        try {
-            if (file instanceof TFile) {
-                await this.vault.modify(file, fullContent);
-            } else {
-                await this.vault.create(filePath, fullContent);
-            }
-        } catch (error) {
-            if (error.message === 'File already exists.') {
-                // Another process created the file while we were preparing content
-                const newFile = this.app.vault.getAbstractFileByPath(filePath);
-                if (newFile instanceof TFile) {
-                    await this.vault.modify(newFile, fullContent);
-                } else {
-                    throw new Error('File exists but cannot be accessed');
-                }
-            } else {
-                throw error;
-            }
-        }
+        // Save file using DirectoryManager
+        await this.directoryManager.writeFile(filePath, fullContent);
 
     }
 
@@ -233,26 +216,8 @@ export class FileService implements LinkResolver {
             '\n```json\n' + JSON.stringify(poll, null, 2) + '\n```'
         ].join('');
 
-        // Save file with race condition handling
-        try {
-            if (file instanceof TFile) {
-                await this.vault.modify(file, fullContent);
-            } else {
-                await this.vault.create(filePath, fullContent);
-            }
-        } catch (error) {
-            if (error.message === 'File already exists.') {
-                // Another process created the file while we were preparing content
-                const newFile = this.app.vault.getAbstractFileByPath(filePath);
-                if (newFile instanceof TFile) {
-                    await this.vault.modify(newFile, fullContent);
-                } else {
-                    throw new Error('File exists but cannot be accessed');
-                }
-            } else {
-                throw error;
-            }
-        }
+        // Save file using DirectoryManager
+        await this.directoryManager.writeFile(filePath, fullContent);
 
         // Cache the poll title
         const safeTitle = this.pathUtils.getPath(poll.question, '', { extractTitle: false }).replace(/^.*[/\\](.+?)\.md$/, '$1');
@@ -289,26 +254,8 @@ export class FileService implements LinkResolver {
             '\n```json\n' + JSON.stringify(profile, null, 2) + '\n```'
         ].join('\n');
 
-        // Save profile with race condition handling
-        try {
-            if (file instanceof TFile) {
-                await this.vault.modify(file, content);
-            } else {
-                await this.vault.create(filePath, content);
-            }
-        } catch (error) {
-            if (error.message === 'File already exists.') {
-                // Another process created the file while we were preparing content
-                const newFile = this.app.vault.getAbstractFileByPath(filePath);
-                if (newFile instanceof TFile) {
-                    await this.vault.modify(newFile, content);
-                } else {
-                    throw new Error('File exists but cannot be accessed');
-                }
-            } else {
-                throw error;
-            }
-        }
+        // Save profile using DirectoryManager
+        await this.directoryManager.writeFile(filePath, content);
     }
 
     async getTitleById(id: string): Promise<string | null> {
@@ -365,18 +312,9 @@ export class FileService implements LinkResolver {
         const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
         if (!(sourceFile instanceof TFile)) return;
 
-        try {
-            const content = await this.vault.read(sourceFile);
-            await this.vault.create(targetPath, content);
-            await this.vault.delete(sourceFile);
-        } catch (error) {
-            if (error.message === 'File already exists.') {
-                // Profile already moved, just delete the source
-                await this.vault.delete(sourceFile);
-            } else {
-                throw error;
-            }
-        }
+        const content = await this.directoryManager.readFile(sourcePath);
+        await this.directoryManager.writeFile(targetPath, content);
+        await this.directoryManager.deleteFile(sourcePath);
     }
 
     async checkDirectories(): Promise<boolean> {

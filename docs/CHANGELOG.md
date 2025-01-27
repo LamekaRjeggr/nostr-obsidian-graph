@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.88.10] - 2024-01-26
+- Improved file operations using Obsidian's native API through DirectoryManager
+- Simplified race condition handling by leveraging Obsidian's file management
+- Unified file operations across notes, polls, and profiles
+- Reduced code complexity and potential edge cases
+
 ## [0.88.9] - 2024-01-26
 - Improved thread context fetching using Obsidian's resolvedLinks API
 - Enhanced type safety with ThreadContextWithReplies interface
