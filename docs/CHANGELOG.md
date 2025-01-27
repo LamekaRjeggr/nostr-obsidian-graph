@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.88.11] - 2024-01-26
+- Enhanced profile linking using Obsidian's native link system
+- Added bi-directional links between notes and mentioned profiles
+- Improved profile backlinks with "Mentioned In" section
+- Better integration with Obsidian's graph view
+
 ## [0.88.10] - 2024-01-26
 - Improved file operations using Obsidian's native API through DirectoryManager
 - Simplified race condition handling by leveraging Obsidian's file management

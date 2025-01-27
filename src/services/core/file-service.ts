@@ -165,11 +165,23 @@ export class FileService implements LinkResolver {
                 }
             }
 
-            if (grouped[TagType.MENTION]?.length) {
-                frontmatterData.mentions = grouped[TagType.MENTION]
-                    .map((ref: TagReference) => ref.targetId)
-                    .filter((id: string | undefined): id is string => id !== undefined);
-            }
+            // Handle profile mentions from p tags
+            const profileMentions = await Promise.all(
+                event.tags
+                    .filter(tag => tag[0] === 'p')
+                    .map(async tag => {
+                        const profileName = await this.getTitleById(tag[1]);
+                        return profileName ? `[[${profileName}]]` : tag[1];
+                    })
+            );
+            frontmatterData.mentions = [
+                ...profileMentions,
+                ...(grouped[TagType.MENTION]?.length
+                    ? grouped[TagType.MENTION]
+                        .map((ref: TagReference) => ref.targetId)
+                        .filter((id: string | undefined): id is string => id !== undefined)
+                    : [])
+            ];
 
             if (grouped[TagType.TOPIC]?.length) {
                 frontmatterData.topics = grouped[TagType.TOPIC]
@@ -245,12 +257,16 @@ export class FileService implements LinkResolver {
             nip05: profile.nip05,
             picture: profile.picture
         }, existingFrontmatter);
+        // Find notes that mention this profile
+        const mentioningNotes = await this.findMentioningNotes(profile.pubkey);
+        
         const content = [
             '---',
             FrontmatterUtil.formatFrontmatter(frontmatterData),
             '---\n',
             `# ${displayName}\n`,
             profile.about || '',
+            mentioningNotes.length > 0 ? '\n## Mentioned In\n' + mentioningNotes.map(note => `- [[${note}]]`).join('\n') : '',
             '\n```json\n' + JSON.stringify(profile, null, 2) + '\n```'
         ].join('\n');
 
@@ -335,6 +351,31 @@ export class FileService implements LinkResolver {
 
     async listFilesInDirectory(directory: string): Promise<string[]> {
         return this.directoryManager.listFiles(directory);
+    }
+
+    async findMentioningNotes(pubkey: string): Promise<string[]> {
+        try {
+            const files = this.app.vault.getMarkdownFiles();
+            const mentioningNotes: string[] = [];
+
+            for (const file of files) {
+                const cache = this.app.metadataCache.getFileCache(file);
+                if (cache?.frontmatter?.nostr_tags) {
+                    const hasMention = cache.frontmatter.nostr_tags.some(
+                        (tag: string[]) => tag[0] === 'p' && tag[1] === pubkey
+                    );
+                    if (hasMention) {
+                        const title = cache.headings?.[0]?.heading || file.basename;
+                        mentioningNotes.push(title);
+                    }
+                }
+            }
+
+            return mentioningNotes;
+        } catch (error) {
+            console.error(`Error finding mentioning notes for ${pubkey}:`, error);
+            return [];
+        }
     }
 
     async findNotePathById(id: string): Promise<string | null> {
