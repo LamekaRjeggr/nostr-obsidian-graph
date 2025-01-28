@@ -215,14 +215,12 @@ export default class NostrPlugin extends Plugin {
             console.log('[NostrPlugin] Poll service disabled in settings');
         }
 
-        // Initialize mentioned profile fetcher with unified processor
-        this.mentionedProfileFetcher = new MentionedProfileFetcher(
+        // Initialize mentioned note fetcher for profile handling
+        const mentionedNoteFetcher = new MentionedNoteFetcher(
             this.relayService,
-            this.eventService,
-            this.profileManager,
-            this.fileService,
             this.app,
-            this.unifiedFetchProcessor
+            this.settings,
+            this.fileService
         );
 
         // Register profile handler
@@ -381,17 +379,7 @@ export default class NostrPlugin extends Plugin {
             id: 'fetch-mentioned-profiles',
             name: 'Fetch Mentioned Profiles',
             callback: async () => {
-                console.log('[NostrPlugin] Fetch mentioned profiles command triggered');
-                const mentions = this.unifiedFetchProcessor.getReferenceProcessor().getAllMentions();
-                console.log('[NostrPlugin] Found mentions:', mentions);
-                if (mentions.length === 0) {
-                    console.log('[NostrPlugin] No mentions found, returning');
-                    return;
-                }
-                    
-                console.log('[NostrPlugin] Fetching profiles for mentions:', mentions);
-                await this.mentionedProfileFetcher.fetchMentionedProfiles(mentions);
-                console.log('[NostrPlugin] Finished fetching mentioned profiles');
+                await mentionedNoteFetcher.fetchMentionedProfiles();
             }
         });
 

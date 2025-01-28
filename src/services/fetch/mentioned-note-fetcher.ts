@@ -1,85 +1,135 @@
 import { RelayService } from '../core/relay-service';
-import { EventService } from '../core/event-service';
-import { FileService } from '../core/file-service';
 import { EventKinds } from '../core/base-event-handler';
-import { Notice, App } from 'obsidian';
-import { ThreadFetcher } from '../thread/thread-fetcher';
-import { NostrSettings } from '../../types';
+import { Notice, App, TFile } from 'obsidian';
+import { NostrSettings, ProfileData } from '../../types';
+import { FileService } from '../core/file-service';
+import { FrontmatterUtil } from '../file/utils/frontmatter-util';
 
 export class MentionedNoteFetcher {
-    private threadFetcher: ThreadFetcher;
-
     constructor(
         private relayService: RelayService,
-        private eventService: EventService,
-        private fileService: FileService,
         private app: App,
-        private settings: NostrSettings
-    ) {
-        this.threadFetcher = new ThreadFetcher(relayService, eventService, settings);
-    }
+        private settings: NostrSettings,
+        private fileService: FileService
+    ) {}
 
-    async fetchMentionedNotes() {
+    async fetchMentionedProfiles() {
         try {
-            // Get current file
-            const activeFile = this.app.workspace.getActiveFile();
-            if (!activeFile) {
-                new Notice('No active file');
-                return;
-            }
+            // First pass: Scan files and collect profiles
+            const files = this.app.vault.getMarkdownFiles();
+            const profileKeys = new Set<string>();
+            const notesWithProfiles = new Map<TFile, string[]>(); // file -> pubkeys
+            let scannedCount = 0;
 
-            // Get file metadata
-            const cache = this.app.metadataCache.getFileCache(activeFile);
-            if (!cache?.frontmatter?.nostr_tags) {
-                new Notice('No nostr_tags found in current file');
-                return;
-            }
+            // Scan each file for p tags
+            for (const file of files) {
+                const cache = this.app.metadataCache.getFileCache(file);
+                if (!cache?.frontmatter?.nostr_tags) continue;
 
-            // Collect "e" tags from current file
-            const mentionedNoteIds = new Set<string>();
-            for (const tag of cache.frontmatter.nostr_tags) {
-                if (Array.isArray(tag) && tag[0] === 'e' && tag[1]) {
-                    mentionedNoteIds.add(tag[1]);
+                // Get p tags from note
+                const pTags = cache.frontmatter.nostr_tags
+                    .filter((tag: string[]) => Array.isArray(tag) && tag[0] === 'p' && tag[1])
+                    .map((tag: string[]) => tag[1]);
+
+                if (pTags.length > 0) {
+                    pTags.forEach((pubkey: string) => profileKeys.add(pubkey));
+                    notesWithProfiles.set(file, pTags);
                 }
+                scannedCount++;
             }
 
-            if (mentionedNoteIds.size === 0) {
-                new Notice('No mentioned notes found in current file');
+            if (profileKeys.size === 0) {
+                new Notice(`No profile mentions found in ${scannedCount} files`);
                 return;
             }
 
-            new Notice(`Processing ${mentionedNoteIds.size} threads...`);
+            new Notice(`Found ${profileKeys.size} profiles in ${scannedCount} files...`);
 
-            // Process each mentioned note as a thread
+            // Second pass: Fetch and create profiles
+            const profiles = new Map<string, string>(); // pubkey -> display name
+            const batchSize = 10;
             let processedCount = 0;
-            for (const noteId of mentionedNoteIds) {
+            const profileArray = Array.from(profileKeys);
+
+            for (let i = 0; i < profileArray.length; i += batchSize) {
+                const batch = profileArray.slice(i, i + batchSize);
+                const filters = batch.map(pubkey => ({
+                    kinds: [0],
+                    authors: [pubkey]
+                }));
+
                 try {
-                    // Fetch and process the thread context
-                    await this.threadFetcher.processThreadEvent(await this.fetchEvent(noteId));
-                    processedCount++;
+                    // Fetch profiles in batch
+                    const events = await this.relayService.subscribe(filters);
+                    
+                    // Process each profile
+                    for (const event of events) {
+                        try {
+                            const profile = JSON.parse(event.content);
+                            const displayName = profile.display_name || profile.name || `Nostr User ${event.pubkey.slice(0, 8)}`;
+
+                            // Save profile using FileService
+                            await this.fileService.saveProfile({
+                                pubkey: event.pubkey,
+                                name: profile.name,
+                                displayName: profile.display_name,
+                                about: profile.about,
+                                nip05: profile.nip05,
+                                picture: profile.picture
+                            });
+
+                            profiles.set(event.pubkey, displayName);
+                            processedCount++;
+                        } catch (error) {
+                            console.error(`Error processing profile ${event.pubkey}:`, error);
+                            continue;
+                        }
+                    }
+
+                    new Notice(`Processed ${processedCount} of ${profileKeys.size} profiles...`);
                 } catch (error) {
-                    console.error(`Error processing thread ${noteId}:`, error);
+                    console.error('Error fetching profile batch:', error);
                     continue;
                 }
             }
 
-            new Notice(`Processed ${processedCount} threads`);
+            // Third pass: Update notes with proper profile links
+            let updatedCount = 0;
+            for (const [file, pubkeys] of notesWithProfiles.entries()) {
+                try {
+                    const content = await this.app.vault.read(file);
+                    const cache = this.app.metadataCache.getFileCache(file);
+                    if (!cache?.frontmatter) continue;
+
+                    // Update frontmatter with proper profile links
+                    const mentions = pubkeys.map(pubkey => {
+                        const displayName = profiles.get(pubkey);
+                        return displayName ? `[[${displayName}]]` : pubkey;
+                    });
+
+                    const updatedFrontmatter = {
+                        ...cache.frontmatter,
+                        mentions
+                    };
+
+                    // Replace frontmatter in content
+                    const newContent = content.replace(
+                        /^---\n([\s\S]*?)\n---/,
+                        `---\n${FrontmatterUtil.formatFrontmatter(updatedFrontmatter)}\n---`
+                    );
+
+                    await this.app.vault.modify(file, newContent);
+                    updatedCount++;
+                } catch (error) {
+                    console.error(`Error updating note ${file.path}:`, error);
+                    continue;
+                }
+            }
+
+            new Notice(`Completed: ${processedCount} profiles created and ${updatedCount} notes updated`);
         } catch (error) {
-            console.error('Error fetching mentioned notes:', error);
-            new Notice('Error fetching mentioned notes');
+            console.error('Error fetching mentioned profiles:', error);
+            new Notice('Error fetching mentioned profiles');
         }
-    }
-
-    private async fetchEvent(id: string) {
-        const filter = {
-            kinds: [EventKinds.NOTE],
-            ids: [id]
-        };
-
-        const events = await this.relayService.subscribe([filter]);
-        if (!events.length) {
-            throw new Error(`Event ${id} not found`);
-        }
-        return events[0];
     }
 }
