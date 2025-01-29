@@ -7,16 +7,46 @@ A comprehensive Nostr integration for Obsidian, enabling you to fetch, organize,
 ### Fetch Operations
 - Multiple fetch modes with dedicated settings:
   - Regular fetch: Get notes from your npub (up to 500 notes per batch)
+    * Batch processing for better performance
+    * Automatic retry on failure
+    * Progress tracking with notifications
   - Thread fetch: Get complete thread context and replies
+    * Root and reply context preservation
+    * Bi-directional reference tracking
+    * Parallel thread processing
   - Hex fetch: Get notes from specific authors (up to 500 notes)
+    * Configurable batch size
+    * Author-specific filtering
+    * Metadata preservation
   - Keyword search: Advanced search with NIP-50 support (up to 5000 notes)
-    - Dedicated search field for keywords
-    - Comma-separated keyword input
-    - Configurable search scope and time range
-    - Content type filtering options
+    * Dedicated search field for keywords
+    * Comma-separated keyword input
+    * Configurable search scope and time range
+    * Content type filtering options
   - Node-based fetch: Context-aware fetch from right-click menu
+    * Profile-based fetching
+    * Thread context fetching
+    * Automatic relationship mapping
 
-### Content Organization
+### Known Limitations
+- Memory Management:
+  * Cache grows unbounded without size limits
+  * No cache persistence between sessions
+  * Title and link caches can get out of sync
+- File Operations:
+  * Potential race conditions during concurrent updates
+  * Profile updates can break existing links
+  * No atomic file operations
+- Event Handling:
+  * Limited retry mechanisms for failed fetches
+  * No timeout handling for slow relay responses
+  * Event stream can get stuck on errors
+- Poll System:
+  * Vote deduplication relies only on pubkey
+  * No handling of poll close events
+  * Vote counts can get out of sync
+
+### Content Organization & Storage
 - Tag-based relationship system
   - Thread relationships based on nostr 'e' tags with markers
   - Root and reply references preserved from nostr protocol
@@ -209,8 +239,3 @@ Right-click on any nostr file to access:
    - Proper typing
    - Comprehensive comments
 
-4. Testing
-   - Unit tests
-   - Integration tests
-   - Error case tests
-   - Documentation tests

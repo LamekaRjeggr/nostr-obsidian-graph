@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.88.14] - 2024-01-29
+- Enhanced documentation of fetch operations
+- Added Known Limitations section to README
+- Updated fetch operation details with performance features
+- Improved organization of documentation
+- Added detailed sub-sections for each fetch mode
+
 ## [0.88.13] - 2024-01-28
 - Improved profile linking with Obsidian's native backlinks system
 - Updated MentionedNoteFetcher to use FileService for consistent profile formatting

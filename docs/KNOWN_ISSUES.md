@@ -1,97 +1,60 @@
 # Known Issues
 
-## ✓ Note Relationships (Resolved)
+## Memory Management
+1. Cache System:
+   - NoteCacheManager has no size limits or eviction policy
+   - Title and link caches grow unbounded
+   - No cache persistence between sessions
+   - Title cache and note cache can get out of sync
+   - No validation between file content and cache
+   - Cache not cleared on file deletions
 
-Previous issue with chronological linking has been resolved:
+## File Operations
+2. Race Conditions:
+   - FileService's saveNote/saveProfile can create duplicate files
+   - No atomic operations for file updates
+   - Potential conflicts during concurrent profile/note updates
+   - Profile updates can break existing links
+   - Backlinks not updated when notes are moved/renamed
+   - No cleanup of orphaned profile files
 
-1. Previous Implementation (Resolved)
-   - ~~Notes were ordered purely by created_at timestamp~~
-   - ~~Previous/Next links were created based on chronological order~~
-   - ~~No consideration of thread relationships from nostr tags~~
+## Event Handling
+3. Relay Communication:
+   - UnifiedFetchProcessor doesn't handle failed relay connections gracefully
+   - No retry mechanism for failed event fetches
+   - Event stream can get stuck if error occurs mid-processing
+   - No timeout handling for slow relay responses
 
-2. Current Implementation
-   - Uses 'e' tags with 'root' and 'reply' markers to build thread structure
-   - Properly handles thread relationships through TagProcessor
-   - Maintains accurate conversation flow based on nostr protocol
-   - Preserves timestamps for display purposes only
+## Poll System
+4. Vote Management:
+   - Vote deduplication relies only on pubkey
+   - No handling of poll close events
+   - Vote counts can get out of sync with actual votes
+   - No validation of vote option IDs
+   - No expiration handling for old polls
+   - Inconsistent vote state across relays
 
-3. Benefits
-   - Thread context is properly maintained
-   - Replies are correctly linked to parent posts
-   - Conversation flow matches nostr's design
-   - Simpler, more accurate relationship model
+## Future Improvements
+1. Cache System:
+   - Implement LRU cache with size limits
+   - Add cache persistence to disk
+   - Add cache validation and sync mechanisms
+   - Implement cache cleanup on file operations
 
-## Current Issues
+2. File Operations:
+   - Add file locking for atomic operations
+   - Implement proper conflict resolution
+   - Add orphaned file cleanup
+   - Improve backlink maintenance
 
-1. Thread Fetching
-   - ✓ Vault-wide thread fetch now functional with parallel processing
-   - ✓ Improved reliability with retry mechanism
-   - ✓ Better performance with concurrent batches
-   - ✓ Enhanced progress tracking
-   - ✓ Single note thread fetch works correctly
-   - ✓ Profile-based thread fetch works correctly
-   - ✓ Thread context handling improved
-   - Need to investigate vault-wide reference scanning (future enhancement)
+3. Event Handling:
+   - Add retry mechanisms for failed fetches
+   - Implement proper error recovery
+   - Add timeout handling
+   - Improve relay connection management
 
-2. Cache Management
-   - Need better cache invalidation strategy
-   - Memory usage optimization needed
-   - Cache persistence between sessions
-   - ✓ Improved memory management in batch processing
-
-3. Performance
-   - Large thread fetches can be slow
-   - Profile fetching could be optimized
-   - ✓ Batch processing improvements implemented
-   - ✓ Reduced bundle size by ~30%
-
-4. Contact Processing
-   - Contact graph initialization can be slow for large follow lists
-   - Memory usage increases with contact graph size
-   - ✓ Profile fetching for large contact lists optimized
-   - ✓ Contact event validation improved
-   - ✓ Better error handling for contact graph operations
-   - ✓ Contact metadata persistence implemented
-
-5. Fetch System Architecture
-   - ✓ Contact fetching unified through ContactGraphService
-   - ✓ Profile fetching integrated with contact graph
-   - ✓ Contact event validation improved
-   - ✓ Right-click operations migrated to UnifiedFetchProcessor
-   - ✓ Legacy FetchProcessor deprecated
-   - ✓ Unified metadata handling implemented
-
-6. Integration Challenges
-   - ✓ Metadata handling unified across processors
-   - ✓ Event stream and batch processing unified
-   - ✓ Improved state management in UnifiedFetchProcessor
-   - ✓ Better error handling with event bus
-   - ✓ Consistent npub/hex key handling
-
-7. Poll System
-   - ✓ Vote event handling updated to use kind 1018
-   - ✓ Response tag processing implemented
-   - ✓ Vote deduplication per user working
-   - ✓ Single/multiple choice validation improved
-   - Potential improvements needed:
-     * Vote event expiration handling
-     * Poll close event handling
-     * Vote count verification across relays
-     * Better error recovery for failed votes
-     * Vote event persistence strategy
-
-8. Profile Processing
-   - ✓ Unified profile event handling through stream handler
-   - ✓ Removed duplicate event handler in UnifiedFetchService
-   - ✓ Fixed direct event emission in UnifiedFetchProcessor
-   - ✓ Improved profile linking with Obsidian's native backlinks
-   - ✓ Enhanced note frontmatter with proper [[Profile Name]] links
-   - ✓ Consistent profile formatting using FileService
-   - Profile directory management needs improvement:
-     * Profile updates can create duplicate files
-     * Need better strategy for handling profile moves between directories
-     * Profile deletion/cleanup needs improvement
-   - Future enhancements:
-     * Consider caching profile display names for faster link updates
-     * Add batch processing for note frontmatter updates
-     * Optimize vault-wide profile scanning
+4. Poll System:
+   - Implement proper vote verification
+   - Add poll expiration handling
+   - Improve vote state consistency
+   - Add vote option validation

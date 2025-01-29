@@ -1,6 +1,6 @@
 {
 	"name": "nostr-obsidian-graph",
-  "version": "0.88.5",
+  "version": "0.88.14",
 	"description": "Nostr integration for Obsidian with experimental features including NIP-1068 polls",
 	"main": "main.js",
 	"scripts": {
