@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.88.13] - 2024-01-28
+- Improved profile linking with Obsidian's native backlinks system
+- Updated MentionedNoteFetcher to use FileService for consistent profile formatting
+- Enhanced note frontmatter with proper [[Profile Name]] links
+- Fixed bi-directional linking between notes and profiles
+
 ## [0.88.12] - 2024-01-26
 - Added hex fetch modal with note limit slider
 - Improved hex key validation and error handling
