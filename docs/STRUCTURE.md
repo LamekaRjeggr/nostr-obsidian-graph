@@ -75,7 +75,7 @@ src/
 
 ## Service Architecture
 
-### Note Relationships
+### Note and Profile Relationships
 - **Tag-based System**: Relationships between notes are based on nostr tags
   - Root references: 'e' tags with 'root' marker
   - Reply references: 'e' tags with 'reply' marker
@@ -85,11 +85,19 @@ src/
   - TagProcessor: Extracts and categorizes tags
   - ReferenceProcessor: Manages bi-directional references
   - Metadata: Stores references in note frontmatter
+- **Profile Linking**:
+  - Obsidian Native: Uses Obsidian's built-in link resolution
+  - Bi-directional: Links maintained through [[Profile Name]] syntax
+  - Frontmatter: Profile mentions stored in note frontmatter
+  - Backlinks: Automatically managed by Obsidian's cache
 
 ### Core Layer
 - **Interfaces**: Define contracts for validators, managers, and handlers
 - **Handlers**: Process different types of events with specialized components
 - **Services**: Core functionality like relay connections and file operations
+  - FileService: Centralized file operations and link management
+  - DirectoryManager: File system operations and path handling
+  - ProfileFormatter: Consistent profile note formatting
 - **Contact Graph**: Manages contact relationships and follows
   - Direct follows tracking
   - Follows-of-follows support

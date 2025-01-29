@@ -84,11 +84,14 @@ Previous issue with chronological linking has been resolved:
    - ✓ Unified profile event handling through stream handler
    - ✓ Removed duplicate event handler in UnifiedFetchService
    - ✓ Fixed direct event emission in UnifiedFetchProcessor
+   - ✓ Improved profile linking with Obsidian's native backlinks
+   - ✓ Enhanced note frontmatter with proper [[Profile Name]] links
+   - ✓ Consistent profile formatting using FileService
    - Profile directory management needs improvement:
      * Profile updates can create duplicate files
      * Need better strategy for handling profile moves between directories
      * Profile deletion/cleanup needs improvement
-   - MentionedProfileFetcher still needs refactoring:
-     * Direct event emission needs to be replaced with stream handler
-     * Profile moves should be handled after stream processing
-     * Better error handling for profile moves
+   - Future enhancements:
+     * Consider caching profile display names for faster link updates
+     * Add batch processing for note frontmatter updates
+     * Optimize vault-wide profile scanning
