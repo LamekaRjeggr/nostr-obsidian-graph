@@ -123,6 +123,44 @@ A comprehensive Nostr integration for Obsidian, enabling you to fetch, organize,
 3. Search for "Nostr Graph"
 4. Install and enable the plugin
 
+### Directory Management
+
+#### Directory Structure
+The plugin maintains several key directories for organizing Nostr content:
+- `nostr/notes`: Primary directory for notes
+- `nostr/replies`: Directory for reply content
+- `nostr/profiles`: Directory for user profiles
+- `nostr/polls`: Directory for polls (when enabled)
+- `nostr/User Profile`: Directory for user's own profile
+- `nostr/User Notes`: Directory for user's own notes
+- `nostr/Replies to User`: Directory for replies to user
+
+#### Directory Initialization
+The plugin automatically creates and manages these directories. Important notes:
+
+1. Initial Setup
+- Directories are created when the plugin first loads
+- Each directory's state is tracked to ensure proper initialization
+- Settings are persisted after successful directory creation
+
+2. Directory Deletion Behavior
+- If directories are manually deleted, the app needs to be reloaded twice:
+  * First reload: Detects missing directories and triggers recreation
+  * Second reload: Ensures proper initialization and state persistence
+- This double-reload requirement is due to the plugin's state tracking system
+
+#### Commands
+- `Fetch Notes`: Get notes for configured npub
+- `Fetch Mentioned Profiles`: Get profiles for mentioned users
+- `Fetch Thread`: Get thread context for current note
+- `Fetch Author Threads`: Get all threads for current profile
+- `Fetch Vault Threads`: Get threads for all notes in vault
+- `Node based fetch`: Context-aware fetch from right-click menu
+  * On profile files: Fetches author's notes
+  * On note files: Fetches full thread context
+
+Each command is designed to maintain proper directory structure and organization while fetching content.
+
 ### Fetch Settings Modal
 Access via Command Palette (Mod+Shift+F) to configure:
 - Regular Fetch: Notes per profile (1-500)
@@ -238,4 +276,3 @@ Right-click on any nostr file to access:
    - Clear error handling
    - Proper typing
    - Comprehensive comments
-
