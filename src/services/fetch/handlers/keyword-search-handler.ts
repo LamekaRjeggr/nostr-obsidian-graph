@@ -36,43 +36,6 @@ export class KeywordSearchHandler implements EventHandler<KeywordSearchEvent> {
         }
     }
 
-    private getContentTypeFilter(contentType: ContentType): (note: NostrEvent) => boolean {
-        switch (contentType) {
-            case ContentType.TEXT_ONLY:
-                return (note) => !note.content.match(/https?:\/\/[^\s]+/);
-            case ContentType.WITH_MEDIA:
-                return (note) => note.content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|mp4|webp)/i) !== null;
-            case ContentType.WITH_MENTIONS:
-                return (note) => note.tags.some(tag => tag[0] === 'p');
-            default:
-                return () => true;
-        }
-    }
-
-    private async getScopeFilter(scope: SearchScope): Promise<(note: NostrEvent) => boolean> {
-        const userHex = KeyService.npubToHex(this.settings.npub);
-        if (!userHex) {
-            throw new Error('Invalid user npub');
-        }
-
-        // Initialize contact graph if needed
-        await this.contactGraphService.initialize(userHex);
-
-        switch (scope) {
-            case SearchScope.DIRECT_FOLLOWS:
-                return (note) => 
-                    note.pubkey === userHex || 
-                    this.contactGraphService.isDirectFollow(note.pubkey);
-            case SearchScope.FOLLOWS_OF_FOLLOWS:
-                return (note) => 
-                    note.pubkey === userHex || 
-                    this.contactGraphService.isDirectFollow(note.pubkey) ||
-                    this.contactGraphService.isFollowOfFollow(note.pubkey);
-            default:
-                return () => true;
-        }
-    }
-
     async handle(event: KeywordSearchEvent): Promise<void> {
         try {
             const { keywords, limit, searchSettings } = event;
@@ -84,29 +47,17 @@ export class KeywordSearchHandler implements EventHandler<KeywordSearchEvent> {
                 searchSettings.customEndDate
             );
 
-            // Get content type filter
-            const contentTypeFilter = this.getContentTypeFilter(searchSettings.contentType);
-
-            // Get scope filter
-            const scopeFilter = await this.getScopeFilter(searchSettings.scope);
-            
-            // Use unified fetch processor with NIP-50 search
+            // Use unified fetch processor with NIP-50 search only
             const results = await this.unifiedFetchProcessor.fetchWithOptions({
                 kinds: [EventKinds.NOTE],
                 limit: limit,
                 since: timeRange.since,
                 until: timeRange.until,
                 search: keywords,  // Use NIP-50 search
-                skipSave: true,    // Skip auto-save since we'll handle it
-                // Apply additional filters that can't be done via NIP-50
-                filter: (note) => {
-                    // Check scope first (uses contact graph)
-                    if (!scopeFilter(note)) return false;
-
-                    // Check content type
-                    return contentTypeFilter(note);
-                }
+                skipSave: true    // Skip auto-save since we'll handle it
             });
+
+            new Notice(`Searching for keywords: ${keywords.join(', ')}`);
 
             // Save each result
             let savedCount = 0;

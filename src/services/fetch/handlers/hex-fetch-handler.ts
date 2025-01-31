@@ -67,14 +67,19 @@ export class HexFetchHandler implements EventHandler<HexFetchEvent> {
             }
 
             // Then fetch their notes with context
+            // Ensure limit is within bounds
+            const limit = Math.min(Math.max(event.limit || 50, 1), 200);
+
             const notes = await this.unifiedFetchProcessor.fetchWithOptions({
                 kinds: [EventKinds.NOTE],
                 authors: [hexKey],
-                limit: 50,
+                limit: limit,
                 enhanced: {
                     reactions: true
                 }
             });
+
+            new Notice(`Fetching ${limit} notes for ${hexKey}`);
 
             let processedNotes = 0;
             // Process each note with proper references
