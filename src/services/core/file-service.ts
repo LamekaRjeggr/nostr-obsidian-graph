@@ -12,6 +12,16 @@ import { logger } from './logger';
 import { KeyService } from './key-service';
 import { PathUtils } from '../file/utils/path-utils';
 
+const NOSTR_PATHS = {
+    NOTES: 'nostr/notes',
+    PROFILES: 'nostr/profiles',
+    REPLIES: 'nostr/replies',
+    POLLS: 'nostr/polls',
+    USER_PROFILE: 'nostr/User Profile',
+    USER_NOTES: 'nostr/User Notes',
+    USER_REPLIES: 'nostr/Replies to User'
+};
+
 interface NoteMeta {
     id: string;
     pubkey: string;
@@ -49,7 +59,7 @@ export class FileService implements LinkResolver {
     ) {
         this.noteFormatter = new NoteFormatter(this);
         this.profileFormatter = new ProfileFormatter();
-        this.directoryManager = directoryManager || new DirectoryManager(vault, settings, app);
+        this.directoryManager = directoryManager || new DirectoryManager(vault, app);
         this.noteCacheManager = new NoteCacheManager();
         this.tagProcessor = new TagProcessor();
         this.pathUtils = new PathUtils(app);
@@ -73,25 +83,25 @@ export class FileService implements LinkResolver {
 
     private async getNotePath(event: NostrEvent): Promise<string> {
         if (this.isUserContent(event.pubkey)) {
-            return this.pathUtils.getNotePath(event.content, 'nostr/User Notes');
+            return this.pathUtils.getNotePath(event.content, NOSTR_PATHS.USER_NOTES);
         }
         
         const isReply = await this.isReplyNote(event);
         if (isReply) {
             return this.pathUtils.getNotePath(
                 event.content, 
-                this.settings.directories.replies
+                NOSTR_PATHS.REPLIES
             );
         }
         
         return this.pathUtils.getNotePath(
             event.content, 
-            this.settings.notesDirectory
+            NOSTR_PATHS.NOTES
         );
     }
 
     private getPollPath(poll: PollFrontmatter): string {
-        return this.pathUtils.getPollPath(poll.question, this.settings.polls.directory);
+        return this.pathUtils.getPollPath(poll.question, NOSTR_PATHS.POLLS);
     }
 
     private convertToTagReferences(references: NoteMetadata['references']): TagReference[] {
@@ -242,8 +252,9 @@ export class FileService implements LinkResolver {
         // Generate display name and path
         const displayName = profile.displayName || profile.name || `Nostr User ${profile.pubkey.slice(0, 8)}`;
         const filePath = this.isUserContent(profile.pubkey)
-            ? this.pathUtils.getPath(displayName, 'nostr/User Profile')
-            : this.pathUtils.getPath(displayName, this.settings.profilesDirectory);
+            ? this.pathUtils.getPath(displayName, NOSTR_PATHS.USER_PROFILE)
+            : this.pathUtils.getPath(displayName, NOSTR_PATHS.PROFILES);
+
         const file = this.app.vault.getAbstractFileByPath(filePath);
 
         const existingFrontmatter = file instanceof TFile
@@ -322,8 +333,8 @@ export class FileService implements LinkResolver {
         await this.directoryManager.ensureDirectories();
 
         const sourceFileName = this.profileFormatter.getFileName({ pubkey, name });
-        const sourcePath = `${this.settings.profilesDirectory}/${sourceFileName}`;
-        const targetPath = `${this.settings.profilesDirectory}/mentions/${sourceFileName}`;
+        const sourcePath = `${NOSTR_PATHS.PROFILES}/${sourceFileName}`;
+        const targetPath = `${NOSTR_PATHS.PROFILES}/mentions/${sourceFileName}`;
 
         const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
         if (!(sourceFile instanceof TFile)) return;
@@ -344,9 +355,9 @@ export class FileService implements LinkResolver {
     // Public methods for directory operations
     async getNotesDirectories(): Promise<string[]> {
         return [
-            this.settings.directories.main,
-            this.settings.directories.replies
-        ].filter((dir): dir is string => typeof dir === 'string');
+            NOSTR_PATHS.NOTES,
+            NOSTR_PATHS.REPLIES
+        ];
     }
 
     async listFilesInDirectory(directory: string): Promise<string[]> {
@@ -415,8 +426,8 @@ export class FileService implements LinkResolver {
             }
 
             // Handle profile files
-            if (filePath.startsWith(this.settings.profilesDirectory) || 
-                filePath.startsWith('nostr/User Profile')) {
+            if (filePath.startsWith(NOSTR_PATHS.PROFILES) || 
+                filePath.startsWith(NOSTR_PATHS.USER_PROFILE)) {
                 const pubkey = frontmatter.aliases?.[0];
                 if (!pubkey) {
                     return null;

@@ -2,7 +2,6 @@ import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import NostrPlugin from '../main';
 import { ValidationService } from '../services/validation-service';
 import { RelayService } from '../services/core/relay-service';
-import { FetchSettingsModal } from './modals/fetch-settings-modal';
 import { PollService } from '../experimental/polls/poll-service';
 
 export class SettingsTab extends PluginSettingTab {
@@ -87,31 +86,6 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                         this.display();
                     }
-                }));
-
-        // Directory Settings
-        containerEl.createEl('h3', { text: 'Directory Settings' });
-
-        new Setting(containerEl)
-            .setName('Notes Directory')
-            .setDesc('Directory to store notes in')
-            .addText(text => text
-                .setPlaceholder('nostr/notes')
-                .setValue(this.plugin.settings.directories.main || '')
-                .onChange(async (value) => {
-                    this.plugin.settings.directories.main = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        new Setting(containerEl)
-            .setName('Replies Directory')
-            .setDesc('Directory to store replies in')
-            .addText(text => text
-                .setPlaceholder('nostr/replies')
-                .setValue(this.plugin.settings.directories.replies || '')
-                .onChange(async (value) => {
-                    this.plugin.settings.directories.replies = value;
-                    await this.plugin.saveSettings();
                 }));
 
         // Auto Update Settings

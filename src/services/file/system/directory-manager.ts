@@ -1,27 +1,24 @@
-import { Vault, TFile, App } from 'obsidian';
-import { NostrSettings } from '../../../types';
+import { Vault, TFile, App, Notice } from 'obsidian';
+
+const NOSTR_DIRECTORIES = [
+    'nostr/notes',
+    'nostr/profiles',
+    'nostr/replies',
+    'nostr/profiles/mentions',
+    'nostr/polls',
+    'nostr/User Profile',
+    'nostr/User Notes',
+    'nostr/Replies to User'
+];
 
 export class DirectoryManager {
     constructor(
         private vault: Vault,
-        private settings: NostrSettings,
         private app: App
     ) {}
 
     async ensureDirectories(): Promise<void> {
-        const directories = [
-            this.settings.directories.main,
-            this.settings.notesDirectory,
-            this.settings.profilesDirectory,
-            this.settings.directories.replies,
-            `${this.settings.profilesDirectory}/mentions`,
-            this.settings.polls.directory,
-            'nostr/User Profile',
-            'nostr/User Notes',
-            'nostr/Replies to User'
-        ].filter((dir): dir is string => !!dir);
-
-        for (const dir of directories) {
+        for (const dir of NOSTR_DIRECTORIES) {
             try {
                 const folder = this.vault.getAbstractFileByPath(dir);
                 if (!folder) {
@@ -29,24 +26,15 @@ export class DirectoryManager {
                 }
             } catch (error) {
                 console.error(`Error ensuring directory ${dir}:`, error);
+                new Notice('Missing directories detected. Please reload Obsidian.');
                 throw error;
             }
         }
     }
 
     async checkDirectories(): Promise<boolean> {
-        const directories = [
-            this.settings.directories.main,
-            this.settings.notesDirectory,
-            this.settings.profilesDirectory,
-            this.settings.polls.directory,
-            'nostr/User Profile',
-            'nostr/User Notes',
-            'nostr/Replies to User'
-        ].filter((dir): dir is string => !!dir);
-
         try {
-            for (const dir of directories) {
+            for (const dir of NOSTR_DIRECTORIES) {
                 const folder = this.vault.getAbstractFileByPath(dir);
                 if (!folder) {
                     return false;

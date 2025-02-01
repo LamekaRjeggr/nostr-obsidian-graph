@@ -5,16 +5,10 @@ export interface NostrSettings {
     relays: RelaySettings[];
     notesPerProfile: number;
     batchSize: number;
-    notesDirectory: string;
-    profilesDirectory: string;
     autoUpdate: boolean;
     updateInterval: number;
     includeOwnNotes: boolean;
     usePublicKeyAsFilename: boolean;
-    directories: {
-        main: string;
-        replies: string;
-    };
     polls: {
         enabled: boolean;
         directory: string;

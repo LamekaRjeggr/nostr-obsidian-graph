@@ -39,18 +39,12 @@ const DEFAULT_PLUGIN_SETTINGS: NostrSettings = {
         { url: 'wss://nos.lol', enabled: true },
         { url: 'wss://relay.nostr.band', enabled: true }
     ],
-    notesDirectory: 'nostr/notes',  // Keep for backwards compatibility
-    profilesDirectory: 'nostr/profiles',
     autoUpdate: false,
     updateInterval: 300,
     usePublicKeyAsFilename: false,
     notesPerProfile: 50,  // Default from UnifiedFetchSettings
     batchSize: 50,       // Default from UnifiedFetchSettings
     includeOwnNotes: true, // Default from UnifiedFetchSettings
-    directories: {
-        main: 'nostr/notes',     // Primary directory for notes
-        replies: 'nostr/replies' // Optional directory for replies
-    },
     polls: {
         enabled: false,          // Disabled by default for safety
         directory: 'nostr/polls', // Separate directory for polls
@@ -412,7 +406,7 @@ export default class NostrPlugin extends Plugin {
             name: 'Fetch All Threads for Current Profile',
             checkCallback: (checking: boolean) => {
                 const file = this.app.workspace.getActiveFile();
-                if (!file || !file.path.startsWith(this.settings.profilesDirectory)) {
+                if (!file || !file.path.startsWith('nostr/profiles')) {
                     return false;
                 }
                 
