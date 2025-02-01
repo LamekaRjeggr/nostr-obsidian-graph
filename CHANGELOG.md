@@ -4,6 +4,12 @@ All notable changes to the Nostr Graph plugin will be documented in this file.
 
 ## [0.88.16] - 2025-01-31
 
+### Changed
+- Simplified directory handling by using hardcoded paths
+- Removed configurable directory settings
+- Added reload notice when directories are missing
+- Improved directory initialization reliability
+
 ### Fixed
 - Improved keyword search accuracy by using only NIP-50 relay search
 - Removed additional filtering layers that were causing unrelated notes to appear
