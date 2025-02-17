@@ -11,7 +11,6 @@ export interface NostrSettings {
     usePublicKeyAsFilename: boolean;
     polls: {
         enabled: boolean;
-        directory: string;
         autoUpdate: boolean;
     };
     hexFetch?: {

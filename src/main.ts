@@ -47,7 +47,6 @@ const DEFAULT_PLUGIN_SETTINGS: NostrSettings = {
     includeOwnNotes: true, // Default from UnifiedFetchSettings
     polls: {
         enabled: false,          // Disabled by default for safety
-        directory: 'nostr/polls', // Separate directory for polls
         autoUpdate: true         // Auto-update polls when enabled
     },
     hexFetch: {

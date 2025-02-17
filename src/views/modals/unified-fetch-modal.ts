@@ -162,15 +162,6 @@ export class UnifiedFetchModal extends Modal {
                     await this.onSubmit(this.settings);
                 }));
 
-        new Setting(container)
-            .setName('Enhanced Metadata')
-            .setDesc('Include additional metadata')
-            .addToggle(toggle => toggle
-                .setValue(this.settings.enhanced!.metadata ?? true)
-                .onChange(async value => {
-                    this.settings.enhanced!.metadata = value;
-                    await this.onSubmit(this.settings);
-                }));
     }
 
     private createContactSettings(container: HTMLElement) {
@@ -198,15 +189,6 @@ export class UnifiedFetchModal extends Modal {
                     await this.onSubmit(this.settings);
                 }));
 
-        new Setting(container)
-            .setName('Link in Graph')
-            .setDesc('Link contacts in the graph')
-            .addToggle(toggle => toggle
-                .setValue(this.settings.contacts!.linkInGraph)
-                .onChange(async value => {
-                    this.settings.contacts!.linkInGraph = value;
-                    await this.onSubmit(this.settings);
-                }));
     }
 
     private createThreadSettings(container: HTMLElement) {

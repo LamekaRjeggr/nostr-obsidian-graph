@@ -150,17 +150,6 @@ export class SettingsTab extends PluginSettingTab {
 
         if (this.plugin.settings.polls.enabled) {
             new Setting(containerEl)
-                .setName('Poll Directory')
-                .setDesc('Directory to store polls in')
-                .addText(text => text
-                    .setPlaceholder('nostr/polls')
-                    .setValue(this.plugin.settings.polls.directory || '')
-                    .onChange(async (value) => {
-                        this.plugin.settings.polls.directory = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            new Setting(containerEl)
                 .setName('Auto Update Polls')
                 .setDesc('Automatically update poll results')
                 .addToggle(toggle => toggle

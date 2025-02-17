@@ -10,14 +10,12 @@ export interface UnifiedFetchSettings {
     enhanced?: {
         titles?: boolean;
         reactions?: boolean;
-        metadata?: boolean;
     };
 
     // Contact settings
     contacts?: {
         include: boolean;
         fetchProfiles: boolean;
-        linkInGraph: boolean;
     };
 
     // Thread settings
@@ -66,13 +64,11 @@ export const DEFAULT_UNIFIED_SETTINGS: UnifiedFetchSettings = {
     includeOwnNotes: true,
     enhanced: {
         titles: true,
-        reactions: true,
-        metadata: true
+        reactions: true
     },
     contacts: {
         include: true,
-        fetchProfiles: true,
-        linkInGraph: true
+        fetchProfiles: true
     },
     thread: {
         limit: 50,
